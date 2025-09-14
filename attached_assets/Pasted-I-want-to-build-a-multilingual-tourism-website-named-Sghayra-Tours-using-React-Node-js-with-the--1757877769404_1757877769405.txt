@@ -1,0 +1,52 @@
+I want to build a multilingual tourism website named "Sghayra Tours" using React + Node.js with the following requirements:
+
+- **Tourism features:**
+  - Camel riding tours (2 to 10 days, customizable group size)
+  - Traditional dinners and meals in the desert
+  - Local cultural activities (music, dance, henna, crafts, etc.)
+  - Group bookings for festivals and carnivals
+  - Transport services (pickup, drop-off)
+  - Gallery with photos and videos
+
+- **Smart booking system:**
+  - Choose activity
+  - Select number of people
+  - Calendar availability
+  - Automatic calculation of price
+  - Advance payment of 10% online (Stripe / PayPal integration)
+  - Multi-currency support: TND (Tunisian Dinar), USD, EUR
+  - Prices update dynamically based on chosen currency
+
+- **Admin Dashboard (React + Node backend, protected login):**
+  - Manage activities (add, edit, delete, change prices, change translations)
+  - Manage articles & annonces (blog posts, promotions, news)
+  - Manage reservations (view, confirm, cancel)
+  - Manage payments (see paid / pending / deposits)
+  - Export data (CSV / Excel)
+  - Dashboard should allow full CRUD (create, read, update, delete) for all content
+
+- **Multilingual support:**
+  - 4 languages: French, English, German, Arabic (RTL support)
+  - Use i18next with JSON translation files
+  - Admin dashboard should also allow updating translations dynamically
+
+- **Design requirements:**
+  - Responsive (mobile, tablet, desktop)
+  - Desert-inspired design (sand, ochre, blue night)
+  - Smooth animations, immersive homepage with video/photo background
+  - Simple but modern UI (Tailwind recommended)
+
+- **Technical:**
+  - Frontend: React (with react-router, react-i18next, Tailwind)
+  - Backend: Node.js + Express (with MongoDB or PostgreSQL)
+  - Authentication for admin
+  - SEO optimized
+  - Secure (HTTPS, GDPR compliance)
+  - Optionally integrate a smart assistant (AI chatbot with OpenAI API) for guiding users
+
+Please generate:
+- `src/i18n.js` with 4 languages
+- Example locale files (`en.json`, `fr.json`, `de.json`, `ar.json`)
+- Example component for booking with multi-currency switcher (TND, USD, EUR)
+- Admin dashboard structure with CRUD for activities and blog posts
+- Example protected route for admin
