@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
 import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
 import { requireAdminAuth, adminLogin, createDefaultAdminIfNeeded } from "./auth";
+import { sendBookingConfirmationEmail, sendBookingStatusUpdateEmail } from "./email";
 import { z } from "zod";
 
 // Simple hash function for generating consistent lock IDs
@@ -460,6 +461,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return booking with activity details
       const bookingWithActivity = await storage.getBooking(booking.id);
       
+      // Send confirmation email asynchronously
+      if (bookingWithActivity) {
+        const emailData = {
+          customerName: bookingWithActivity.customerName,
+          customerEmail: bookingWithActivity.customerEmail,
+          activityTitle: (bookingWithActivity.activity.title as any)[bookingWithActivity.language] || (bookingWithActivity.activity.title as any).en,
+          bookingDate: bookingWithActivity.bookingDate.toISOString(),
+          groupSize: bookingWithActivity.groupSize,
+          totalPrice: parseFloat(bookingWithActivity.totalPrice),
+          currency: bookingWithActivity.currency,
+          depositAmount: parseFloat(bookingWithActivity.depositAmount),
+          bookingId: bookingWithActivity.id,
+          paymentStatus: bookingWithActivity.paymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid',
+          status: bookingWithActivity.status as 'pending' | 'confirmed' | 'cancelled' | 'completed',
+        };
+
+        // Send email without blocking the response
+        sendBookingConfirmationEmail(emailData, bookingWithActivity.language as 'en' | 'fr' | 'de' | 'ar')
+          .then((success) => {
+            if (success) {
+              console.log(`Booking confirmation email sent for booking ${booking.id}`);
+            } else {
+              console.error(`Failed to send confirmation email for booking ${booking.id}`);
+            }
+          })
+          .catch((error) => {
+            console.error(`Error sending confirmation email for booking ${booking.id}:`, error);
+          });
+      }
+      
       res.status(201).json(bookingWithActivity);
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -513,6 +544,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
+      }
+
+      // Send status update email asynchronously if status changed to confirmed, cancelled, or completed
+      if (['confirmed', 'cancelled', 'completed'].includes(status)) {
+        const bookingWithActivity = await storage.getBooking(id);
+        if (bookingWithActivity) {
+          const emailData = {
+            customerName: bookingWithActivity.customerName,
+            customerEmail: bookingWithActivity.customerEmail,
+            activityTitle: (bookingWithActivity.activity.title as any)[bookingWithActivity.language] || (bookingWithActivity.activity.title as any).en,
+            bookingDate: bookingWithActivity.bookingDate.toISOString(),
+            groupSize: bookingWithActivity.groupSize,
+            totalPrice: parseFloat(bookingWithActivity.totalPrice),
+            currency: bookingWithActivity.currency,
+            depositAmount: parseFloat(bookingWithActivity.depositAmount),
+            bookingId: bookingWithActivity.id,
+            paymentStatus: bookingWithActivity.paymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid',
+            status: status as 'pending' | 'confirmed' | 'cancelled' | 'completed',
+          };
+
+          // Send email without blocking the response
+          sendBookingStatusUpdateEmail(emailData, bookingWithActivity.language as 'en' | 'fr' | 'de' | 'ar')
+            .then((success) => {
+              if (success) {
+                console.log(`Status update email sent for booking ${id} (${status})`);
+              } else {
+                console.error(`Failed to send status update email for booking ${id}`);
+              }
+            })
+            .catch((error) => {
+              console.error(`Error sending status update email for booking ${id}:`, error);
+            });
+        }
       }
       
       res.json(booking);
