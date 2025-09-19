@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminActivities from "@/pages/AdminActivities";
+import AdminNewActivity from "@/pages/AdminNewActivity";
 import AdminBookings from "@/pages/AdminBookings";
 import AdminTranslations from "@/pages/AdminTranslations";
 import AdminGallery from "@/pages/AdminGallery";
@@ -33,6 +34,7 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
       {/* Admin Routes - No Header/Footer */}
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/activities/new" component={AdminNewActivity} />
       <Route path="/admin/activities" component={AdminActivities} />
       <Route path="/admin/bookings" component={AdminBookings} />
       <Route path="/admin/translations" component={AdminTranslations} />
