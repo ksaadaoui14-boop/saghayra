@@ -14,6 +14,7 @@ import AdminBookings from "@/pages/AdminBookings";
 import AdminTranslations from "@/pages/AdminTranslations";
 import AdminGallery from "@/pages/AdminGallery";
 import Gallery from "@/pages/Gallery";
+import Activities from "@/pages/Activities";
 import ActivityDetail from "@/pages/ActivityDetail";
 import NotFound from "@/pages/not-found";
 
@@ -44,6 +45,21 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
           />
           <main className="flex-1">
             <Gallery currentLanguage={currentLanguage} />
+          </main>
+          <Footer currentLanguage={currentLanguage} />
+        </div>
+      </Route>
+      
+      <Route path="/activities">
+        <div className="min-h-screen flex flex-col">
+          <Header 
+            currentLanguage={currentLanguage}
+            currentCurrency={currentCurrency}
+            onLanguageChange={setCurrentLanguage}
+            onCurrencyChange={setCurrentCurrency}
+          />
+          <main className="flex-1">
+            <Activities currentLanguage={currentLanguage} currentCurrency={currentCurrency} />
           </main>
           <Footer currentLanguage={currentLanguage} />
         </div>
