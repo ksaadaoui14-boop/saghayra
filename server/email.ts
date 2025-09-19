@@ -1,29 +1,47 @@
 import { MailService } from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
-
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+
+// Initialize SendGrid API key at runtime, not import time
+const initializeMailService = () => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn("SENDGRID_API_KEY not found - email notifications will be disabled");
+    return false;
+  }
+  
+  try {
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize SendGrid:", error);
+    return false;
+  }
+};
 
 interface EmailParams {
   to: string;
-  from: string;
+  from?: string;
   subject: string;
   text?: string;
   html?: string;
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  // Check if SendGrid is properly initialized
+  if (!initializeMailService()) {
+    console.log('Email sending disabled - SENDGRID_API_KEY not configured');
+    return false;
+  }
+
   try {
     await mailService.send({
       to: params.to,
-      from: params.from || 'noreply@sghayratours.com',
+      from: params.from || 'info@sghayratours.com', // Use a more professional from address
       subject: params.subject,
       text: params.text,
       html: params.html,
     });
+    console.log(`Email sent successfully to ${params.to}`);
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);

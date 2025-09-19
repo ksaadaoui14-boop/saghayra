@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import Hero from "@/components/Hero";
 import ActivityCard from "@/components/ActivityCard";
 import Gallery from "@/components/Gallery";
@@ -88,14 +89,11 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
     }
   });
 
+  const [, setLocation] = useLocation();
+  
   const handleBookActivity = (activityId: string) => {
-    console.log(`Book now clicked for activity: ${activityId}`);
-    if (activities) {
-      const activity = activities.find(a => a.id === activityId);
-      if (activity) {
-        console.log(`Book now clicked for ${activity.title}`);
-      }
-    }
+    // Navigate to activity detail page using wouter
+    setLocation(`/activity/${activityId}`);
   };
 
   const translations = {
@@ -177,7 +175,7 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
                  currentLanguage === 'de' ? 'Aktivitäten konnten nicht geladen werden' :
                  'فشل في تحميل الأنشطة'}
               </p>
-              <Button onClick={() => window.location.reload()}>
+              <Button onClick={() => window.location.reload()} data-testid="button-try-again">
                 {currentLanguage === 'en' ? 'Try Again' : 
                  currentLanguage === 'fr' ? 'Réessayer' :
                  currentLanguage === 'de' ? 'Erneut versuchen' :

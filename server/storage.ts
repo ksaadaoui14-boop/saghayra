@@ -9,11 +9,14 @@ import {
   type InsertBooking,
   type GalleryItem, 
   type InsertGalleryItem,
+  type Availability,
+  type InsertAvailability,
   users,
   adminUsers,
   activities,
   bookings,
-  galleryItems
+  galleryItems,
+  availability
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, ne } from "drizzle-orm";
@@ -54,6 +57,12 @@ export interface IStorage {
   createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem>;
   updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined>;
   deleteGalleryItem(id: string): Promise<boolean>;
+
+  // Availability
+  getAvailability(activityId: string, fromDate: Date, toDate: Date): Promise<{ date: string; availableSpots: number; totalCapacity: number; isBlocked: boolean; }[]>;
+  getAvailabilityForDate(activityId: string, date: Date): Promise<{ availableSpots: number; totalCapacity: number; isBlocked: boolean; } | null>;
+  createAvailability(availability: InsertAvailability): Promise<Availability>;
+  updateAvailability(id: string, availability: Partial<InsertAvailability>): Promise<Availability | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -267,6 +276,104 @@ export class DatabaseStorage implements IStorage {
   async deleteGalleryItem(id: string): Promise<boolean> {
     const result = await db.delete(galleryItems).where(eq(galleryItems.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Availability
+  async getAvailability(activityId: string, fromDate: Date, toDate: Date): Promise<{ date: string; availableSpots: number; totalCapacity: number; isBlocked: boolean; }[]> {
+    // Get activity capacity
+    const activity = await this.getActivity(activityId);
+    if (!activity) {
+      return [];
+    }
+
+    // Generate date range
+    const dates: Date[] = [];
+    const current = new Date(fromDate);
+    while (current <= toDate) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    // Get existing bookings for each date
+    const results = await Promise.all(
+      dates.map(async (date) => {
+        const dateStart = new Date(date.setUTCHours(0, 0, 0, 0));
+        const dateEnd = new Date(date.setUTCHours(23, 59, 59, 999));
+        
+        const existingBookings = await db
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.activityId, activityId),
+              gte(bookings.bookingDate, dateStart),
+              lte(bookings.bookingDate, dateEnd),
+              ne(bookings.status, "cancelled")
+            )
+          );
+        
+        const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
+        const availableSpots = Math.max(0, activity.capacity - totalBookedSlots);
+        
+        return {
+          date: date.toISOString().split('T')[0],
+          availableSpots,
+          totalCapacity: activity.capacity,
+          isBlocked: false, // Can be extended for manually blocked dates
+        };
+      })
+    );
+
+    return results;
+  }
+
+  async getAvailabilityForDate(activityId: string, date: Date): Promise<{ availableSpots: number; totalCapacity: number; isBlocked: boolean; } | null> {
+    // Get activity capacity
+    const activity = await this.getActivity(activityId);
+    if (!activity) {
+      return null;
+    }
+
+    const dateStart = new Date(date.setUTCHours(0, 0, 0, 0));
+    const dateEnd = new Date(date.setUTCHours(23, 59, 59, 999));
+    
+    const existingBookings = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.activityId, activityId),
+          gte(bookings.bookingDate, dateStart),
+          lte(bookings.bookingDate, dateEnd),
+          ne(bookings.status, "cancelled")
+        )
+      );
+    
+    const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
+    const availableSpots = Math.max(0, activity.capacity - totalBookedSlots);
+    
+    return {
+      availableSpots,
+      totalCapacity: activity.capacity,
+      isBlocked: false, // Can be extended for manually blocked dates
+    };
+  }
+
+  async createAvailability(insertAvailability: InsertAvailability): Promise<Availability> {
+    const [availabilityRecord] = await db
+      .insert(availability)
+      .values(insertAvailability)
+      .returning();
+    return availabilityRecord;
+  }
+
+  async updateAvailability(id: string, updateAvailability: Partial<InsertAvailability>): Promise<Availability | undefined> {
+    const [availabilityRecord] = await db
+      .update(availability)
+      .set({ ...updateAvailability, updatedAt: new Date() })
+      .where(eq(availability.id, id))
+      .returning();
+    return availabilityRecord || undefined;
   }
 }
 

@@ -78,14 +78,34 @@ export const galleryItems = pgTable("gallery_items", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+// Availability table for tracking daily capacity
+export const availability = pgTable("availability", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  activityId: varchar("activity_id").notNull().references(() => activities.id),
+  date: timestamp("date").notNull(), // Use timestamp to match bookingDate
+  availableSpots: integer("available_spots").notNull(),
+  totalCapacity: integer("total_capacity").notNull(),
+  isBlocked: boolean("is_blocked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 // Relations
 export const activitiesRelations = relations(activities, ({ many }) => ({
   bookings: many(bookings),
+  availability: many(availability),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
   activity: one(activities, {
     fields: [bookings.activityId],
+    references: [activities.id],
+  }),
+}));
+
+export const availabilityRelations = relations(availability, ({ one }) => ({
+  activity: one(activities, {
+    fields: [availability.activityId],
     references: [activities.id],
   }),
 }));
@@ -195,3 +215,6 @@ export type InsertBooking = z.infer<typeof insertBookingSchema>;
 
 export type GalleryItem = typeof galleryItems.$inferSelect;
 export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
+
+export type Availability = typeof availability.$inferSelect;
+export type InsertAvailability = typeof availability.$inferInsert;

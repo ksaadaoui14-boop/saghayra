@@ -322,6 +322,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Availability API Routes
+
+  // GET /api/activities/:id/availability?from=YYYY-MM-DD&to=YYYY-MM-DD - Check availability for date range
+  app.get("/api/activities/:id/availability", async (req, res) => {
+    try {
+      const { id: activityId } = req.params;
+      const { from, to } = req.query;
+      
+      if (!from || !to) {
+        return res.status(400).json({ 
+          error: "Both 'from' and 'to' date parameters are required (YYYY-MM-DD format)" 
+        });
+      }
+      
+      const fromDate = new Date(from as string);
+      const toDate = new Date(to as string);
+      
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const availability = await storage.getAvailability(activityId, fromDate, toDate);
+      res.json(availability);
+    } catch (error) {
+      console.error("Error fetching availability:", error);
+      res.status(500).json({ error: "Failed to fetch availability" });
+    }
+  });
+
+  // GET /api/activities/:id/availability/:date - Check availability for specific date
+  app.get("/api/activities/:id/availability/:date", async (req, res) => {
+    try {
+      const { id: activityId, date } = req.params;
+      
+      const targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const availability = await storage.getAvailabilityForDate(activityId, targetDate);
+      res.json(availability);
+    } catch (error) {
+      console.error("Error fetching date availability:", error);
+      res.status(500).json({ error: "Failed to fetch availability for date" });
+    }
+  });
+
   // Bookings API Routes
 
   // GET /api/bookings/:email - Get bookings by customer email (PRIVATE - requires authentication)
