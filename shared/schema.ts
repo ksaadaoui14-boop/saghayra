@@ -98,16 +98,38 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers).pick({
   role: true,
 });
 
+// Define strict multilingual schemas
+const multilingualTextSchema = z.object({
+  en: z.string().min(1),
+  fr: z.string().min(1),
+  de: z.string().min(1),
+  ar: z.string().min(1),
+});
+
+const multilingualArraySchema = z.object({
+  en: z.array(z.string()).min(1),
+  fr: z.array(z.string()).min(1),
+  de: z.array(z.string()).min(1),
+  ar: z.array(z.string()).min(1),
+});
+
+const pricesSchema = z.object({
+  TND: z.number().positive(),
+  USD: z.number().positive(),
+  EUR: z.number().positive(),
+});
+
 export const insertActivitySchema = createInsertSchema(activities).pick({
-  title: true,
-  description: true,
-  highlights: true,
   category: true,
   duration: true,
   groupSize: true,
-  prices: true,
   imageUrl: true,
   isActive: true,
+}).extend({
+  title: multilingualTextSchema,
+  description: multilingualTextSchema,
+  highlights: multilingualArraySchema,
+  prices: pricesSchema,
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).pick({
