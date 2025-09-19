@@ -5,6 +5,8 @@ import { insertActivitySchema, createBookingRequestSchema, bookings, type Activi
 import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
 import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
+import { requireAdminAuth, adminLogin, createDefaultAdminIfNeeded } from "./auth";
+import { z } from "zod";
 
 // Simple hash function for generating consistent lock IDs
 function hashCode(str: string): number {
@@ -17,27 +19,92 @@ function hashCode(str: string): number {
   return hash;
 }
 
-// Temporary admin authentication middleware  
-// TODO: Replace with proper admin authentication system in Task 5
-function requireAdminAuth(req: any, res: any, next: any) {
-  const adminToken = req.headers['x-admin-token'];
-  const expectedToken = process.env.ADMIN_TOKEN;
-  
-  // In production, ADMIN_TOKEN must be set - no default fallback
-  if (!expectedToken) {
-    console.error("ADMIN_TOKEN environment variable not set - admin endpoints disabled");
-    return res.status(503).json({ error: "Admin functionality not configured" });
-  }
-  
-  if (!adminToken || adminToken !== expectedToken) {
-    console.warn(`Unauthorized admin access attempt from ${req.ip || 'unknown IP'}`);
-    return res.status(401).json({ error: "Unauthorized - Admin access required" });
-  }
-  
-  next();
-}
+// Admin login schema for validation
+const adminLoginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize default admin user if none exists
+  await createDefaultAdminIfNeeded();
+
+  // Admin Authentication API Routes
+  
+  // POST /api/admin/login - Admin login
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const result = adminLoginSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const validationError = fromZodError(result.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError.message 
+        });
+      }
+      
+      const { username, password } = result.data;
+      const loginResult = await adminLogin(username, password);
+      
+      if (!loginResult) {
+        // Don't reveal whether username or password was wrong for security
+        return res.status(401).json({ 
+          error: "Invalid credentials",
+          details: "Username or password is incorrect"
+        });
+      }
+      
+      const { admin, token } = loginResult;
+      
+      // Set secure HTTP-only cookie with the JWT token
+      res.cookie('admin_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        sameSite: 'strict',
+        path: '/', // Match logout path
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+      
+      // Return admin info (without password)
+      const { password: _, ...adminInfo } = admin;
+      res.json({
+        success: true,
+        admin: adminInfo,
+        message: "Login successful"
+        // Note: JWT token is only provided via httpOnly cookie for security
+      });
+      
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ error: "Login failed due to server error" });
+    }
+  });
+  
+  // POST /api/admin/logout - Admin logout
+  app.post("/api/admin/logout", async (req, res) => {
+    // Clear the admin token cookie with matching options
+    res.clearCookie('admin_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+    res.json({ success: true, message: "Logout successful" });
+  });
+  
+  // GET /api/admin/me - Get current admin info
+  app.get("/api/admin/me", requireAdminAuth, async (req, res) => {
+    try {
+      const admin = (req as any).admin;
+      const { password: _, ...adminInfo } = admin;
+      res.json(adminInfo);
+    } catch (error) {
+      console.error("Error fetching admin info:", error);
+      res.status(500).json({ error: "Failed to fetch admin info" });
+    }
+  });
+
   // Activities API Routes
   
   // GET /api/activities - Fetch all active activities for public display
@@ -196,7 +263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // CRITICAL: Calculate price server-side for security
       // Get the price per person from activity pricing  
-      const pricePerPerson = activity.prices[result.data.currency as keyof typeof activity.prices];
+      const prices = activity.prices as { TND: number; USD: number; EUR: number };
+      const pricePerPerson = prices[result.data.currency as keyof typeof prices];
       if (!pricePerPerson) {
         return res.status(400).json({ error: `Price not available for currency: ${result.data.currency}` });
       }
@@ -218,54 +286,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lockId = Math.abs(hashCode(lockKey)); // Convert to positive integer for pg_advisory_xact_lock
 
       // Execute booking creation in a transaction with advisory lock
-      const booking = await db.transaction(async (tx) => {
-        // Acquire advisory lock for this activity+date combination
-        await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockId})`);
-        
-        // Re-check availability inside the lock to prevent race conditions
-        const existingBookings = await tx
-          .select()
-          .from(bookings)
-          .where(
-            and(
-              eq(bookings.activityId, result.data.activityId),
-              gte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(0, 0, 0, 0))),
-              lte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(23, 59, 59, 999))),
-              ne(bookings.status, "cancelled")
-            )
-          );
-        
-        const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
-        const slotsRemaining = Math.max(0, activity.capacity - totalBookedSlots);
+      let booking;
+      try {
+        booking = await db.transaction(async (tx) => {
+          // Acquire advisory lock for this activity+date combination
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockId})`);
+          
+          // Re-check availability inside the lock to prevent race conditions
+          const existingBookings = await tx
+            .select()
+            .from(bookings)
+            .where(
+              and(
+                eq(bookings.activityId, result.data.activityId),
+                gte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(0, 0, 0, 0))),
+                lte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(23, 59, 59, 999))),
+                ne(bookings.status, "cancelled")
+              )
+            );
+          
+          const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
+          const slotsRemaining = Math.max(0, activity.capacity - totalBookedSlots);
 
-        if (result.data.groupSize > slotsRemaining) {
-          throw new Error(`CAPACITY_EXCEEDED:${slotsRemaining}:${result.data.groupSize}`);
-        }
+          if (result.data.groupSize > slotsRemaining) {
+            throw new Error(`CAPACITY_EXCEEDED:${slotsRemaining}:${result.data.groupSize}`);
+          }
 
-        // Calculate price inside transaction for consistency
-        const totalPrice = pricePerPerson * result.data.groupSize;
-        const depositAmount = totalPrice * 0.1; // 10% deposit
+          // Calculate price inside transaction for consistency
+          const totalPrice = pricePerPerson * result.data.groupSize;
+          const depositAmount = totalPrice * 0.1; // 10% deposit
 
-        // Create booking data with proper precision
-        const bookingData = {
-          activityId: result.data.activityId,
-          customerName: result.data.customerName,
-          customerEmail: result.data.customerEmail,
-          customerPhone: result.data.customerPhone || null,
-          bookingDate: result.data.bookingDate,
-          groupSize: result.data.groupSize,
-          totalPrice: totalPrice.toFixed(2),
-          depositAmount: depositAmount.toFixed(2),
-          currency: result.data.currency,
-          paymentMethod: result.data.paymentMethod || null,
-          specialRequests: result.data.specialRequests || null,
-          language: result.data.language,
-        };
+          // Create booking data with proper precision
+          const bookingData = {
+            activityId: result.data.activityId,
+            customerName: result.data.customerName,
+            customerEmail: result.data.customerEmail,
+            customerPhone: result.data.customerPhone || null,
+            bookingDate: result.data.bookingDate,
+            groupSize: result.data.groupSize,
+            totalPrice: totalPrice.toFixed(2),
+            depositAmount: depositAmount.toFixed(2),
+            currency: result.data.currency,
+            paymentMethod: result.data.paymentMethod || null,
+            specialRequests: result.data.specialRequests || null,
+            language: result.data.language,
+          };
 
-        // Insert booking within the transaction
-        const [newBooking] = await tx.insert(bookings).values(bookingData).returning();
-        return newBooking;
-      }).catch((error) => {
+          // Insert booking within the transaction
+          const [newBooking] = await tx.insert(bookings).values(bookingData).returning();
+          return newBooking;
+        });
+      } catch (error: any) {
         if (error.message.startsWith('CAPACITY_EXCEEDED:')) {
           const [, slotsRemaining, requestedSize] = error.message.split(':');
           return res.status(409).json({ 
@@ -276,10 +347,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         throw error; // Re-throw other errors
-      });
+      }
 
-      // If we get here, the booking was created successfully
-      
       // Return booking with activity details
       const bookingWithActivity = await storage.getBooking(booking.id);
       

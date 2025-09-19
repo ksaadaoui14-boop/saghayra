@@ -1,0 +1,76 @@
+Remaining Technical Tasks for SghayraTours
+1. Add payments with Stripe & PayPal
+
+Stripe:
+
+Install stripe SDK (npm install stripe).
+
+Create POST /api/payments/stripe → server creates a PaymentIntent with amount = server-calculated price, returns clientSecret.
+
+Handle Stripe webhooks (payment_intent.succeeded, payment_intent.payment_failed) to update booking paymentStatus.
+
+PayPal:
+
+Install PayPal REST SDK.
+
+Create POST /api/payments/paypal → server creates PayPal order, return approval URL.
+
+Handle PayPal webhook (checkout.order.approved) → update booking status.
+
+Store transaction IDs in DB for both Stripe & PayPal.
+
+2. Build Admin Sign-In & Dashboard
+
+Secure login using JWT or session with ADMIN_TOKEN.
+
+Create POST /api/admin/login → returns signed token.
+
+Protect all admin routes (/api/admin/*) with authentication middleware.
+
+Dashboard endpoints:
+
+/api/admin/bookings → list/search bookings.
+
+/api/admin/activities → CRUD for activities.
+
+/api/admin/payments → payment overview.
+
+3. Create Gallery with Uploads & Admin Features
+
+Install file upload middleware (multer or similar).
+
+Create POST /api/gallery/upload (admin only) → save images to uploads/gallery/ or cloud storage (S3/Cloudinary).
+
+Create GET /api/gallery → fetch gallery items with metadata (title, description, image URL).
+
+Add multilingual support for gallery item titles/descriptions.
+
+Admin can delete/update images.
+
+4. Send Booking & Customer Emails
+
+Integrate email service (SendGrid, Nodemailer, or Amazon SES).
+
+Triggers:
+
+Customer booking: Confirmation email with booking details.
+
+Admin alert: Notify admin of new booking.
+
+Payment confirmation: Email once payment is successful.
+
+Templates: multilingual (EN/FR/DE/AR).
+
+Store email logs in DB (optional).
+
+5. Connect Website to Live Features
+
+Deploy backend to production (e.g., Vercel, Heroku, or VPS).
+
+Configure environment variables securely (ADMIN_TOKEN, Stripe/PayPal keys, DB credentials).
+
+Switch frontend to use live API base URL.
+
+Enable HTTPS for security.
+
+Final round of testing: bookings, payments, emails, admin login.
