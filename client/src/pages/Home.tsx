@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
 import Hero from "@/components/Hero";
 import ActivityCard from "@/components/ActivityCard";
 import Gallery from "@/components/Gallery";
@@ -89,12 +89,6 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
     }
   });
 
-  const [, setLocation] = useLocation();
-  
-  const handleBookActivity = (activityId: string) => {
-    // Navigate to activity detail page using wouter
-    setLocation(`/activity/${activityId}`);
-  };
 
   const translations = {
     en: {
@@ -193,7 +187,6 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
                   activity={activity}
                   currency={currentCurrency}
                   currencySymbol={currencySymbol}
-                  onBookNow={handleBookActivity}
                   currentLanguage={currentLanguage}
                 />
               ))}
@@ -213,8 +206,10 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
           )}
 
           <div className="text-center">
-            <Button variant="outline" size="lg" data-testid="button-view-all-activities">
-              {t.viewAllActivities} <ArrowRight className="w-4 h-4 ml-2" />
+            <Button asChild variant="outline" size="lg">
+              <Link href="/activities" data-testid="button-view-all-activities">
+                {t.viewAllActivities} <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
             </Button>
           </div>
         </div>

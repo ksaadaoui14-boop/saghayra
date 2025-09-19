@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Clock, Users, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -21,15 +22,13 @@ interface ActivityCardProps {
   activity: Activity;
   currency: string;
   currencySymbol: string;
-  onBookNow: (activityId: string) => void;
   currentLanguage: string;
 }
 
 export default function ActivityCard({ 
   activity, 
   currency, 
-  currencySymbol, 
-  onBookNow,
+  currencySymbol,
   currentLanguage 
 }: ActivityCardProps) {
   const isRTL = currentLanguage === 'ar';
@@ -138,14 +137,15 @@ export default function ActivityCard({
 
         {/* Book button */}
         <Button 
+          asChild
           className="w-full bg-primary hover:bg-primary/90"
-          onClick={() => {
-            onBookNow(activity.id);
-            console.log(`Book now clicked for ${activity.title}`);
-          }}
-          data-testid={`button-book-${activity.id}`}
         >
-          {t.bookNow}
+          <Link 
+            href={`/activity/${activity.id}`}
+            data-testid={`button-book-${activity.id}`}
+          >
+            {t.bookNow}
+          </Link>
         </Button>
       </CardContent>
     </Card>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Search, Filter, MapPin, Clock, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,14 +15,13 @@ interface ActivitiesProps {
 }
 
 export default function Activities({ currentLanguage, currentCurrency }: ActivitiesProps) {
-  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   
   const currencySymbols = { TND: "د.ت", USD: "$", EUR: "€" };
   const currencySymbol = currencySymbols[currentCurrency as keyof typeof currencySymbols];
 
-  // Fetch activities from API
+  // Fetch activities from API  
   const { data: activities, isLoading, error } = useQuery({
     queryKey: ['/api/activities'],
     select: (data: Activity[]) => {
@@ -43,9 +41,6 @@ export default function Activities({ currentLanguage, currentCurrency }: Activit
     }
   });
 
-  const handleBookActivity = (activityId: string) => {
-    setLocation(`/activity/${activityId}`);
-  };
 
   // Filter activities based on search and category
   const filteredActivities = activities?.filter((activity) => {
@@ -253,7 +248,6 @@ export default function Activities({ currentLanguage, currentCurrency }: Activit
                 activity={activity}
                 currency={currentCurrency}
                 currencySymbol={currencySymbol}
-                onBookNow={handleBookActivity}
                 currentLanguage={currentLanguage}
               />
             ))}
