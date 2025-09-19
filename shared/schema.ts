@@ -210,14 +210,14 @@ export const insertGalleryItemSchema = createInsertSchema(galleryItems).pick({
 });
 
 // Site settings schemas
-const contactInfoSchema = z.object({
+export const contactInfoSchema = z.object({
   phone: z.string(),
   email: z.string().email(),
   address: multilingualTextSchema,
   whatsapp: z.string().optional(),
 });
 
-const socialMediaSchema = z.object({
+export const socialMediaSchema = z.object({
   facebook: z.string().url().optional(),
   instagram: z.string().url().optional(),
   twitter: z.string().url().optional(),
@@ -226,7 +226,7 @@ const socialMediaSchema = z.object({
   tiktok: z.string().url().optional(),
 });
 
-const companyInfoSchema = z.object({
+export const companyInfoSchema = z.object({
   name: multilingualTextSchema,
   tagline: multilingualTextSchema.optional(),
   about: multilingualTextSchema,

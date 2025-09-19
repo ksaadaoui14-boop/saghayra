@@ -286,7 +286,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
           
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/bookings")}>
+          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/bookings")} data-testid="card-bookings">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <BookOpen className="h-5 w-5" />
@@ -303,7 +303,24 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
           
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/translations")}>
+          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/settings")} data-testid="card-settings">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Settings className="h-5 w-5" />
+                <span>Site Settings</span>
+              </CardTitle>
+              <CardDescription>
+                Manage company information, contact details, and social media
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Configure website content and branding
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/translations")} data-testid="card-translations">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <BarChart3 className="h-5 w-5" />

@@ -13,6 +13,7 @@ import AdminActivities from "@/pages/AdminActivities";
 import AdminBookings from "@/pages/AdminBookings";
 import AdminTranslations from "@/pages/AdminTranslations";
 import AdminGallery from "@/pages/AdminGallery";
+import AdminSettings from "@/pages/AdminSettings";
 import Gallery from "@/pages/Gallery";
 import Activities from "@/pages/Activities";
 import ActivityDetail from "@/pages/ActivityDetail";
@@ -35,6 +36,7 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
       <Route path="/admin/bookings" component={AdminBookings} />
       <Route path="/admin/translations" component={AdminTranslations} />
       <Route path="/admin/gallery" component={AdminGallery} />
+      <Route path="/admin/settings" component={AdminSettings} />
       
       {/* Public Routes - With Header/Footer */}
       <Route path="/gallery">
