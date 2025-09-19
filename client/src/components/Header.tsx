@@ -91,8 +91,10 @@ export default function Header({
 
           {/* Book Now button */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button data-testid="button-book-now" className="bg-primary hover:bg-primary/90">
-              Book Now
+            <Button asChild data-testid="button-book-now" className="bg-primary hover:bg-primary/90">
+              <Link href="/booking">
+                Book Now
+              </Link>
             </Button>
           </div>
 
@@ -124,8 +126,10 @@ export default function Header({
                 </Button>
               </Link>
             ))}
-            <Button className="w-full bg-primary hover:bg-primary/90" data-testid="button-book-now-mobile">
-              Book Now
+            <Button asChild className="w-full bg-primary hover:bg-primary/90" data-testid="button-book-now-mobile">
+              <Link href="/booking">
+                Book Now
+              </Link>
             </Button>
           </div>
         </div>

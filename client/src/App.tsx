@@ -19,6 +19,7 @@ import Activities from "@/pages/Activities";
 import ActivityDetail from "@/pages/ActivityDetail";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
+import BookingDetails from "@/pages/BookingDetails";
 import NotFound from "@/pages/not-found";
 
 function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurrentCurrency }: { 
@@ -94,6 +95,21 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
           />
           <main className="flex-1">
             <Contact currentLanguage={currentLanguage} />
+          </main>
+          <Footer currentLanguage={currentLanguage} />
+        </div>
+      </Route>
+      
+      <Route path="/booking">
+        <div className="min-h-screen flex flex-col">
+          <Header 
+            currentLanguage={currentLanguage}
+            currentCurrency={currentCurrency}
+            onLanguageChange={setCurrentLanguage}
+            onCurrencyChange={setCurrentCurrency}
+          />
+          <main className="flex-1">
+            <BookingDetails currentLanguage={currentLanguage} currentCurrency={currentCurrency} />
           </main>
           <Footer currentLanguage={currentLanguage} />
         </div>

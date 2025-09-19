@@ -3,20 +3,7 @@ import { Clock, Users, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface Activity {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  duration: string;
-  groupSize: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  highlights: string[];
-  category: string;
-}
+import type { Activity } from "@shared/schema";
 
 interface ActivityCardProps {
   activity: Activity;
@@ -32,6 +19,24 @@ export default function ActivityCard({
   currentLanguage 
 }: ActivityCardProps) {
   const isRTL = currentLanguage === 'ar';
+
+  // Helper function to get localized text from JSONB fields
+  const getLocalizedText = (textObj: any, fallback = "") => {
+    if (!textObj) return fallback;
+    return textObj[currentLanguage as keyof typeof textObj] || textObj.en || fallback;
+  };
+
+  // Get the price for the current currency
+  const getPrice = () => {
+    if (!activity.prices) return 0;
+    const prices = activity.prices as { TND: number; USD: number; EUR: number };
+    return prices[currency as keyof typeof prices] || prices.USD || 0;
+  };
+
+  const activityTitle = getLocalizedText(activity.title);
+  const activityDescription = getLocalizedText(activity.description);
+  const activityHighlights = (activity.highlights as any)?.[currentLanguage] || (activity.highlights as any)?.en || [];
+  const activityPrice = getPrice();
 
   const translations = {
     en: {
@@ -71,8 +76,8 @@ export default function ActivityCard({
       {/* Image */}
       <div className="relative h-64 overflow-hidden">
         <img 
-          src={activity.image} 
-          alt={activity.title}
+          src={activity.imageUrl || "/api/placeholder/400/300"} 
+          alt={activityTitle}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-4 left-4">
@@ -83,8 +88,8 @@ export default function ActivityCard({
         <div className="absolute top-4 right-4">
           <div className="flex items-center space-x-1 bg-white/90 text-black px-2 py-1 rounded-full text-sm">
             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium">{activity.rating}</span>
-            <span className="text-muted-foreground">({activity.reviews})</span>
+            <span className="font-medium">4.9</span>
+            <span className="text-muted-foreground">(120+)</span>
           </div>
         </div>
       </div>
@@ -93,15 +98,15 @@ export default function ActivityCard({
         <div className={`flex justify-between items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="flex-1">
             <h3 className={`text-xl font-semibold mb-2 ${isRTL ? 'text-right' : ''}`}>
-              {activity.title}
+              {activityTitle}
             </h3>
             <p className={`text-muted-foreground text-sm ${isRTL ? 'text-right' : ''}`}>
-              {activity.description}
+              {activityDescription}
             </p>
           </div>
           <div className={`text-right ${isRTL ? 'text-left' : ''} ml-4`}>
             <div className="text-2xl font-bold text-primary" data-testid={`price-${activity.id}`}>
-              {currencySymbol}{activity.price}
+              {currencySymbol}{activityPrice}
             </div>
             <div className="text-xs text-muted-foreground">per person</div>
           </div>
@@ -122,18 +127,20 @@ export default function ActivityCard({
         </div>
 
         {/* Highlights */}
-        <div>
-          <div className={`text-sm font-medium mb-2 ${isRTL ? 'text-right' : ''}`}>
-            {t.highlights}:
+        {activityHighlights && activityHighlights.length > 0 && (
+          <div>
+            <div className={`text-sm font-medium mb-2 ${isRTL ? 'text-right' : ''}`}>
+              {t.highlights}:
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {activityHighlights.map((highlight: string, index: number) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {highlight}
+                </Badge>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {activity.highlights.map((highlight, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {highlight}
-              </Badge>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Book button */}
         <Button 
@@ -141,7 +148,7 @@ export default function ActivityCard({
           className="w-full bg-primary hover:bg-primary/90"
         >
           <Link 
-            href={`/activity/${activity.id}`}
+            href="/booking"
             data-testid={`button-book-${activity.id}`}
           >
             {t.bookNow}
