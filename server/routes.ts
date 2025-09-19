@@ -8,6 +8,8 @@ import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
 import { requireAdminAuth, adminLogin, createDefaultAdminIfNeeded } from "./auth";
 import { sendBookingConfirmationEmail, sendBookingStatusUpdateEmail } from "./email";
 import { z } from "zod";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 // Simple hash function for generating consistent lock IDs
 function hashCode(str: string): number {
@@ -837,6 +839,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking availability:", error);
       res.status(500).json({ error: "Failed to check availability" });
+    }
+  });
+
+  // ========================
+  // OBJECT STORAGE ROUTES
+  // ========================
+
+  // POST /api/admin/objects/upload - Get upload URL for admin file uploads (protected)
+  app.post("/api/admin/objects/upload", requireAdminAuth, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // PUT /api/admin/objects - Set ACL policy for uploaded file (protected)
+  app.put("/api/admin/objects", requireAdminAuth, async (req, res) => {
+    try {
+      const { fileURL, visibility = "public", fileType } = req.body;
+      
+      if (!fileURL) {
+        return res.status(400).json({ error: "fileURL is required" });
+      }
+
+      // Get admin user ID from auth (added by requireAdminAuth middleware)
+      const adminId = (req as any).user?.id || "admin";
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        fileURL,
+        {
+          owner: adminId,
+          visibility: visibility as "public" | "private",
+        }
+      );
+
+      res.json({
+        objectPath: objectPath,
+        fileType: fileType || "file"
+      });
+    } catch (error) {
+      console.error("Error setting file ACL policy:", error);
+      res.status(500).json({ error: "Failed to process uploaded file" });
+    }
+  });
+
+  // GET /objects/:objectPath(*) - Serve uploaded objects with ACL checking
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      
+      // Check if user has access (public files are always accessible for read)
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: (req as any).user?.id, // May be undefined for non-authenticated requests
+        requestedPermission: ObjectPermission.READ,
+      });
+      
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // GET /public-objects/:filePath(*) - Serve public assets (no auth required)
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 

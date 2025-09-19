@@ -1,3 +1,6 @@
+/* Uppy Dashboard Styles */
+@import url("https://releases.transloadit.com/uppy/v3.4.0/uppy.min.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

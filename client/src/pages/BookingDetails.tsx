@@ -15,7 +15,8 @@ import {
   Mail,
   Shield,
   FileText,
-  Globe
+  Globe,
+  MessageCircle
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -179,6 +180,88 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
     return translations[currentLanguage as keyof typeof translations] || translations.en;
   };
 
+  // WhatsApp booking function
+  const handleWhatsAppBooking = () => {
+    if (!selectedActivity) return;
+    
+    const activityTitle = getLocalizedText(selectedActivity.title);
+    const totalPrice = calculateTotalPrice();
+    const depositAmount = calculateDepositAmount();
+    const groupSize = form.watch("groupSize");
+    const bookingDate = form.watch("bookingDate");
+    const customerName = form.watch("customerName");
+    const customerEmail = form.watch("customerEmail");
+    const specialRequests = form.watch("specialRequests");
+
+    const messageTranslations = {
+      en: `Hello! I would like to book the following activity:
+
+🏜️ *Activity:* ${activityTitle}
+👥 *Group Size:* ${groupSize} ${groupSize === 1 ? 'person' : 'people'}
+📅 *Date:* ${bookingDate}
+💰 *Total Price:* ${currencySymbol}${totalPrice.toFixed(2)}
+💳 *Deposit Required:* ${currencySymbol}${depositAmount.toFixed(2)}
+
+📋 *Customer Details:*
+Name: ${customerName || 'Not provided'}
+Email: ${customerEmail || 'Not provided'}
+${specialRequests ? `Special Requests: ${specialRequests}` : ''}
+
+Please confirm availability and provide payment details. Thank you!`,
+      
+      fr: `Bonjour! Je souhaiterais réserver l'activité suivante:
+
+🏜️ *Activité:* ${activityTitle}
+👥 *Taille du groupe:* ${groupSize} ${groupSize === 1 ? 'personne' : 'personnes'}
+📅 *Date:* ${bookingDate}
+💰 *Prix total:* ${currencySymbol}${totalPrice.toFixed(2)}
+💳 *Acompte requis:* ${currencySymbol}${depositAmount.toFixed(2)}
+
+📋 *Détails client:*
+Nom: ${customerName || 'Non fourni'}
+Email: ${customerEmail || 'Non fourni'}
+${specialRequests ? `Demandes spéciales: ${specialRequests}` : ''}
+
+Veuillez confirmer la disponibilité et fournir les détails de paiement. Merci!`,
+
+      de: `Hallo! Ich möchte die folgende Aktivität buchen:
+
+🏜️ *Aktivität:* ${activityTitle}
+👥 *Gruppengröße:* ${groupSize} ${groupSize === 1 ? 'Person' : 'Personen'}
+📅 *Datum:* ${bookingDate}
+💰 *Gesamtpreis:* ${currencySymbol}${totalPrice.toFixed(2)}
+💳 *Anzahlung erforderlich:* ${currencySymbol}${depositAmount.toFixed(2)}
+
+📋 *Kundendetails:*
+Name: ${customerName || 'Nicht angegeben'}
+Email: ${customerEmail || 'Nicht angegeben'}
+${specialRequests ? `Spezielle Wünsche: ${specialRequests}` : ''}
+
+Bitte bestätigen Sie die Verfügbarkeit und geben Sie Zahlungsdetails an. Danke!`,
+
+      ar: `مرحبا! أود حجز النشاط التالي:
+
+🏜️ *النشاط:* ${activityTitle}
+👥 *حجم المجموعة:* ${groupSize} ${groupSize === 1 ? 'شخص' : 'أشخاص'}
+📅 *التاريخ:* ${bookingDate}
+💰 *السعر الإجمالي:* ${currencySymbol}${totalPrice.toFixed(2)}
+💳 *العربون المطلوب:* ${currencySymbol}${depositAmount.toFixed(2)}
+
+📋 *تفاصيل العميل:*
+الاسم: ${customerName || 'غير محدد'}
+البريد الإلكتروني: ${customerEmail || 'غير محدد'}
+${specialRequests ? `طلبات خاصة: ${specialRequests}` : ''}
+
+يرجى تأكيد التوفر وتقديم تفاصيل الدفع. شكرا لك!`
+    };
+
+    const message = messageTranslations[currentLanguage as keyof typeof messageTranslations] || messageTranslations.en;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `http://wa.me/21640676420?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+  };
+
   // Translations
   const translations = {
     en: {
@@ -200,6 +283,8 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
       totalPrice: "Total Price",
       depositRequired: "Deposit Required (10%)",
       submitBooking: "Confirm Booking",
+      contactWhatsApp: "Contact via WhatsApp",
+      whatsappBooking: "Book via WhatsApp",
       bookingSuccess: "Booking Confirmed!",
       bookingSuccessMessage: "Thank you for your booking! You will receive a confirmation email shortly.",
       bookingId: "Booking ID",
@@ -233,6 +318,8 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
       totalPrice: "Prix Total",
       depositRequired: "Acompte Requis (10%)",
       submitBooking: "Confirmer la Réservation",
+      contactWhatsApp: "Contacter via WhatsApp",
+      whatsappBooking: "Réserver via WhatsApp",
       bookingSuccess: "Réservation Confirmée!",
       bookingSuccessMessage: "Merci pour votre réservation! Vous recevrez un email de confirmation sous peu.",
       bookingId: "ID de Réservation",
@@ -266,6 +353,8 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
       totalPrice: "Gesamtpreis",
       depositRequired: "Anzahlung Erforderlich (10%)",
       submitBooking: "Buchung Bestätigen",
+      contactWhatsApp: "Kontakt über WhatsApp",
+      whatsappBooking: "Über WhatsApp buchen",
       bookingSuccess: "Buchung Bestätigt!",
       bookingSuccessMessage: "Vielen Dank für Ihre Buchung! Sie erhalten in Kürze eine Bestätigungs-E-Mail.",
       bookingId: "Buchungs-ID",
@@ -299,6 +388,8 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
       totalPrice: "السعر الإجمالي",
       depositRequired: "عربون مطلوب (10%)",
       submitBooking: "تأكيد الحجز",
+      contactWhatsApp: "التواصل عبر واتساب",
+      whatsappBooking: "احجز عبر واتساب",
       bookingSuccess: "تم تأكيد الحجز!",
       bookingSuccessMessage: "شكرًا لك على حجزك! ستتلقى رسالة تأكيد عبر البريد الإلكتروني قريبًا.",
       bookingId: "رقم الحجز",
@@ -547,19 +638,35 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
                       />
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      disabled={bookingMutation.isPending}
-                      className="w-full"
-                      size="lg"
-                      data-testid="button-submit-booking"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      {bookingMutation.isPending ? 
-                        "Processing..." : 
-                        `${t.submitBooking} (${currencySymbol}${calculateTotalPrice().toFixed(2)})`
-                      }
-                    </Button>
+                    {/* Booking Action Buttons */}
+                    <div className="space-y-3">
+                      <Button 
+                        type="submit" 
+                        disabled={bookingMutation.isPending}
+                        className="w-full"
+                        size="lg"
+                        data-testid="button-submit-booking"
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {bookingMutation.isPending ? 
+                          "Processing..." : 
+                          `${t.submitBooking} (${currencySymbol}${calculateTotalPrice().toFixed(2)})`
+                        }
+                      </Button>
+                      
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={handleWhatsAppBooking}
+                        disabled={!selectedActivity || !form.watch("customerName") || !form.watch("bookingDate")}
+                        className="w-full bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300"
+                        size="lg"
+                        data-testid="button-whatsapp-booking"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        {t.whatsappBooking}
+                      </Button>
+                    </div>
                   </form>
                 </CardContent>
               </Card>

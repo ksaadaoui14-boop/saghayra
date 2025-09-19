@@ -13,6 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema } from "@shared/schema";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { Upload, Image, Video, FileText } from "lucide-react";
+import type { UploadResult } from "@uppy/core";
 
 // Form schemas derived from shared schemas to ensure consistency
 const companyFormSchema = companyInfoSchema.extend({
@@ -39,6 +42,87 @@ type BookingFormData = z.infer<typeof bookingFormSchema>;
 export default function AdminSettings() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("company");
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+
+  // Upload helper functions
+  const handleGetUploadParameters = async () => {
+    const response = await fetch('/api/admin/objects/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+    
+    const data = await response.json();
+    return {
+      method: 'PUT' as const,
+      url: data.uploadURL,
+    };
+  };
+
+  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    try {
+      if (result.successful && result.successful.length > 0) {
+        const objectPaths: string[] = [];
+        
+        // Process all successfully uploaded files
+        for (const uploadedFile of result.successful) {
+          const fileURL = uploadedFile.uploadURL;
+          
+          // Set ACL policy for the uploaded file
+          const response = await fetch('/api/admin/objects', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              fileURL: fileURL,
+              visibility: 'public',
+              fileType: uploadedFile.type || 'file'
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to process uploaded file: ${uploadedFile.name}`);
+          }
+
+          const data = await response.json();
+          const objectPath = data.objectPath;
+          objectPaths.push(objectPath);
+        }
+        
+        setUploadedFiles(prev => [...prev, ...objectPaths]);
+        
+        toast({
+          title: "Upload Successful",
+          description: `${result.successful.length} file(s) uploaded successfully`,
+        });
+
+        return objectPaths;
+      }
+    } catch (error) {
+      console.error('Error processing upload:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to process uploaded file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogoUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    const objectPaths = await handleUploadComplete(result);
+    if (objectPaths && objectPaths.length > 0) {
+      // Update the logo URL field with the first uploaded file
+      companyForm.setValue('logoUrl', objectPaths[0]);
+      toast({
+        title: "Logo Updated",
+        description: "Logo uploaded successfully and form updated",
+      });
+    }
+  };
 
   // Fetch all settings
   const { data: allSettings, isLoading } = useQuery({
@@ -275,11 +359,12 @@ export default function AdminSettings() {
 
       <div className="max-w-6xl mx-auto p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="company" data-testid="tab-company">Company Info</TabsTrigger>
             <TabsTrigger value="contact" data-testid="tab-contact">Contact Details</TabsTrigger>
             <TabsTrigger value="social" data-testid="tab-social">Social Media</TabsTrigger>
             <TabsTrigger value="booking" data-testid="tab-booking">Booking Settings</TabsTrigger>
+            <TabsTrigger value="media" data-testid="tab-media">Media Management</TabsTrigger>
           </TabsList>
 
           {/* Company Info Tab */}
@@ -517,9 +602,28 @@ export default function AdminSettings() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Logo URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="/logo.png" data-testid="input-logo-url" />
-                            </FormControl>
+                            <div className="space-y-2">
+                              <FormControl>
+                                <Input {...field} placeholder="/logo.png" data-testid="input-logo-url" />
+                              </FormControl>
+                              <ObjectUploader
+                                maxNumberOfFiles={1}
+                                maxFileSize={5242880} // 5MB
+                                allowedFileTypes={['.jpg', '.jpeg', '.png', '.webp', '.gif']}
+                                onGetUploadParameters={handleGetUploadParameters}
+                                onComplete={handleLogoUploadComplete}
+                                buttonClassName="w-full"
+                                data-testid="button-upload-logo"
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload Logo
+                              </ObjectUploader>
+                              {field.value && (
+                                <div className="text-sm text-muted-foreground">
+                                  Current: {field.value}
+                                </div>
+                              )}
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1117,6 +1221,153 @@ export default function AdminSettings() {
                 </Form>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Media Management Tab */}
+          <TabsContent value="media">
+            <div className="space-y-6">
+              {/* Photos Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Photo Management
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Upload and manage photos for activities, galleries, and other content. Supported formats: JPG, PNG, WebP.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <ObjectUploader
+                      maxNumberOfFiles={10}
+                      maxFileSize={10485760} // 10MB
+                      allowedFileTypes={['.jpg', '.jpeg', '.png', '.webp']}
+                      onGetUploadParameters={handleGetUploadParameters}
+                      onComplete={handleUploadComplete}
+                      buttonClassName="w-full"
+                      data-testid="button-upload-photos"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Photos
+                    </ObjectUploader>
+                    
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Recently Uploaded Files</h4>
+                        <div className="space-y-2">
+                          {uploadedFiles.slice(-5).map((filePath, index) => (
+                            <div key={index} className="flex items-center justify-between bg-muted p-3 rounded border">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{filePath.split('/').pop()}</div>
+                                <code className="text-xs text-muted-foreground break-all">{filePath}</code>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(filePath);
+                                  toast({
+                                    title: "Copied!",
+                                    description: "File path copied to clipboard",
+                                  });
+                                }}
+                                className="ml-2 flex-shrink-0"
+                              >
+                                Copy Path
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Videos Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Video Management
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Upload and manage video content. Supported formats: MP4, WebM, MOV.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ObjectUploader
+                    maxNumberOfFiles={5}
+                    maxFileSize={104857600} // 100MB
+                    allowedFileTypes={['.mp4', '.webm', '.mov']}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleUploadComplete}
+                    buttonClassName="w-full"
+                    data-testid="button-upload-videos"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Videos
+                  </ObjectUploader>
+                </CardContent>
+              </Card>
+
+              {/* Documents Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Document Management
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Upload documents, PDFs, and other files. Supported formats: PDF, DOC, DOCX, TXT.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ObjectUploader
+                    maxNumberOfFiles={10}
+                    maxFileSize={20971520} // 20MB
+                    allowedFileTypes={['.pdf', '.doc', '.docx', '.txt']}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleUploadComplete}
+                    buttonClassName="w-full"
+                    data-testid="button-upload-documents"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Documents
+                  </ObjectUploader>
+                </CardContent>
+              </Card>
+
+              {/* Usage Instructions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>How to Use Uploaded Files</CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-sm max-w-none">
+                  <div className="space-y-4 text-sm">
+                    <div>
+                      <h4 className="font-medium">Using Files in Content</h4>
+                      <p className="text-muted-foreground">
+                        After uploading files, you can reference them in your activity descriptions, company information, and other content areas using the provided file paths.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Logo Updates</h4>
+                      <p className="text-muted-foreground">
+                        Uploaded logo images can be automatically used by copying the file path to the Logo URL field in the Company Info tab.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">File Security</h4>
+                      <p className="text-muted-foreground">
+                        All uploaded files are stored securely with proper access controls. Public files are accessible for website display, while private files require authentication.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

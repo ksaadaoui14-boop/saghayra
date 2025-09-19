@@ -1,5 +1,15 @@
 # Sghayra Tours - Multilingual Tourism Website
 
+## Recent Changes
+
+### December 2024 - File Upload System Implementation
+- **Comprehensive Admin File Upload**: Added complete file upload functionality to admin dashboard
+- **Media Management Tab**: New dedicated tab with three upload sections (photos, videos, documents)
+- **Enhanced Logo Upload**: Company Info tab now includes direct file upload for logos
+- **File Type Restrictions**: Enforced file type validation for different upload categories
+- **Multi-File Support**: Proper handling of multiple file uploads with progress tracking
+- **Security & Performance**: Memory leak prevention, proper cleanup, and secure upload flows
+
 ## Overview
 
 Sghayra Tours is a comprehensive multilingual tourism platform specializing in authentic Sahara desert experiences. The application provides a booking system for various desert activities including camel trekking, traditional dining, and cultural activities, with support for multiple languages (English, French, German, Arabic) and currencies (TND, USD, EUR). The platform features a public-facing website for customers and a secure admin dashboard for content and booking management.
