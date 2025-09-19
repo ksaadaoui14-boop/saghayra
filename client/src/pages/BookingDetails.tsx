@@ -62,6 +62,9 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
   const currencySymbols = { TND: "د.ت", USD: "$", EUR: "€" };
   const currencySymbol = currencySymbols[currentCurrency as keyof typeof currencySymbols];
 
+  // Check if booking is enabled
+  const isBookingEnabled = settings?.booking_info?.isBookingEnabled ?? true;
+
   // Form setup
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -153,7 +156,27 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
   };
 
   const calculateDepositAmount = () => {
-    return Math.round(calculateTotalPrice() * 0.1);
+    const depositPercentage = settings?.booking_info?.depositPercentage || 10;
+    return Math.round(calculateTotalPrice() * (depositPercentage / 100));
+  };
+
+  // Helper to get policy text from admin settings or fallback to translations
+  const getPolicyText = (policyType: 'cancellationPolicy' | 'termsAndConditions' | 'privacyPolicy', fallback: string) => {
+    if (settings?.booking_info?.[policyType]) {
+      return getLocalizedText(settings.booking_info[policyType], fallback);
+    }
+    return fallback;
+  };
+
+  const getDepositText = () => {
+    const percentage = settings?.booking_info?.depositPercentage || 10;
+    const translations = {
+      en: `Only ${percentage}% deposit required to secure your booking`,
+      fr: `Seulement ${percentage}% d'acompte requis pour sécuriser votre réservation`,
+      de: `Nur ${percentage}% Anzahlung erforderlich, um Ihre Buchung zu sichern`,
+      ar: `يُطلب ${percentage}% فقط كدفعة مقدمة لتأمين حجزك`
+    };
+    return translations[currentLanguage as keyof typeof translations] || translations.en;
   };
 
   // Translations
@@ -423,7 +446,7 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
             </Card>
 
             {/* Customer Information Form */}
-            {selectedActivity && (
+            {selectedActivity && isBookingEnabled && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -599,6 +622,27 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
               </Card>
             )}
 
+            {/* Booking Disabled Message */}
+            {selectedActivity && !isBookingEnabled && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    {currentLanguage === 'en' && "Booking Currently Unavailable"}
+                    {currentLanguage === 'fr' && "Réservation Actuellement Indisponible"}
+                    {currentLanguage === 'de' && "Buchung Derzeit Nicht Verfügbar"}
+                    {currentLanguage === 'ar' && "الحجز غير متاح حاليا"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {currentLanguage === 'en' && "New bookings are temporarily disabled. Please contact us directly for assistance."}
+                    {currentLanguage === 'fr' && "Les nouvelles réservations sont temporairement désactivées. Veuillez nous contacter directement pour assistance."}
+                    {currentLanguage === 'de' && "Neue Buchungen sind vorübergehend deaktiviert. Bitte kontaktieren Sie uns direkt für Unterstützung."}
+                    {currentLanguage === 'ar' && "الحجوزات الجديدة معطلة مؤقتا. يرجى الاتصال بنا مباشرة للمساعدة."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Contact Information */}
             <Card>
               <CardHeader>
@@ -610,11 +654,15 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{settings?.contact_details?.phone || "+216 XX XXX XXX"}</span>
+                  <span className="text-sm">
+                    {settings?.booking_info?.contactPhone || settings?.contact_details?.phone || "+216 XX XXX XXX"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{settings?.contact_details?.email || "info@sghayratours.com"}</span>
+                  <span className="text-sm">
+                    {settings?.booking_info?.contactEmail || settings?.contact_details?.email || "info@sghayratours.com"}
+                  </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
@@ -634,20 +682,30 @@ export default function BookingDetails({ currentLanguage, currentCurrency }: Boo
               <CardContent className="space-y-3">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                  <span className="text-sm">{t.cancellationPolicy}</span>
+                  <span className="text-sm">
+                    {getPolicyText('cancellationPolicy', t.cancellationPolicy)}
+                  </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <CreditCard className="h-4 w-4 text-blue-500 mt-0.5" />
-                  <span className="text-sm">{t.paymentPolicy}</span>
+                  <span className="text-sm">
+                    {getDepositText()}
+                  </span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-orange-500 mt-0.5" />
-                  <span className="text-sm">{t.safetyPolicy}</span>
+                  <span className="text-sm">
+                    {getPolicyText('termsAndConditions', t.safetyPolicy)}
+                  </span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Globe className="h-4 w-4 text-purple-500 mt-0.5" />
-                  <span className="text-sm">{t.languageSupport}</span>
-                </div>
+                {settings?.booking_info?.bookingInstructions && getLocalizedText(settings.booking_info.bookingInstructions) && (
+                  <div className="flex items-start gap-3">
+                    <Globe className="h-4 w-4 text-purple-500 mt-0.5" />
+                    <span className="text-sm">
+                      {getLocalizedText(settings.booking_info.bookingInstructions)}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

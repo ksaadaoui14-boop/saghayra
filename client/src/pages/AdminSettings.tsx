@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { companyInfoSchema, contactInfoSchema, socialMediaSchema } from "@shared/schema";
+import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema } from "@shared/schema";
 
 // Form schemas derived from shared schemas to ensure consistency
 const companyFormSchema = companyInfoSchema.extend({
@@ -27,9 +27,14 @@ const socialFormSchema = socialMediaSchema.extend({
   isActive: z.boolean().default(true)
 });
 
+const bookingFormSchema = bookingInfoSchema.extend({
+  isActive: z.boolean().default(true)
+});
+
 type CompanyFormData = z.infer<typeof companyFormSchema>;
 type ContactFormData = z.infer<typeof contactFormSchema>;
 type SocialFormData = z.infer<typeof socialFormSchema>;
+type BookingFormData = z.infer<typeof bookingFormSchema>;
 
 export default function AdminSettings() {
   const { toast } = useToast();
@@ -76,6 +81,22 @@ export default function AdminSettings() {
     }
   });
 
+  // Booking Settings Form
+  const bookingForm = useForm<BookingFormData>({
+    resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      termsAndConditions: { en: "", fr: "", de: "", ar: "" },
+      privacyPolicy: { en: "", fr: "", de: "", ar: "" },
+      cancellationPolicy: { en: "", fr: "", de: "", ar: "" },
+      bookingInstructions: { en: "", fr: "", de: "", ar: "" },
+      contactEmail: "",
+      contactPhone: "",
+      depositPercentage: 10,
+      isBookingEnabled: true,
+      isActive: true
+    }
+  });
+
   // Update forms when data loads
   useEffect(() => {
     const settingsData = allSettings as Record<string, any> || {};
@@ -92,7 +113,11 @@ export default function AdminSettings() {
       const { type, ...socialData } = settingsData.social_media;
       socialForm.reset({ ...socialData, isActive: settingsData.social_media.isActive ?? true });
     }
-  }, [allSettings, companyForm, contactForm, socialForm]);
+    if (settingsData.booking_info) {
+      const { type, ...bookingData } = settingsData.booking_info;
+      bookingForm.reset({ ...bookingData, isActive: settingsData.booking_info.isActive ?? true });
+    }
+  }, [allSettings, companyForm, contactForm, socialForm, bookingForm]);
 
   // Mutations for updating settings
   const updateCompanyMutation = useMutation({
@@ -185,6 +210,36 @@ export default function AdminSettings() {
     }
   });
 
+  const updateBookingMutation = useMutation({
+    mutationFn: async (data: BookingFormData) => {
+      const { isActive, ...value } = data;
+      const valueWithType = { type: "booking_info", ...value };
+      return apiRequest("PUT", "/api/admin/settings/booking_info", { value: valueWithType, isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Force refetch by removing from cache completely
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Success", description: "Booking settings updated successfully" });
+    },
+    onError: async (error: any) => {
+      console.error("Booking settings update error:", error);
+      
+      // Try to parse server validation details
+      let errorMessage = "Failed to update booking settings";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({ 
+        title: "Error", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -220,10 +275,11 @@ export default function AdminSettings() {
 
       <div className="max-w-6xl mx-auto p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="company" data-testid="tab-company">Company Info</TabsTrigger>
             <TabsTrigger value="contact" data-testid="tab-contact">Contact Details</TabsTrigger>
             <TabsTrigger value="social" data-testid="tab-social">Social Media</TabsTrigger>
+            <TabsTrigger value="booking" data-testid="tab-booking">Booking Settings</TabsTrigger>
           </TabsList>
 
           {/* Company Info Tab */}
@@ -708,6 +764,354 @@ export default function AdminSettings() {
 
                     <Button type="submit" disabled={updateSocialMutation.isPending} data-testid="button-save-social">
                       {updateSocialMutation.isPending ? "Saving..." : "Save Social Media Settings"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Booking Settings Tab */}
+          <TabsContent value="booking">
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...bookingForm}>
+                  <form onSubmit={bookingForm.handleSubmit((data) => updateBookingMutation.mutate(data))} className="space-y-6">
+                    <FormField
+                      control={bookingForm.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Enable Booking System</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Make the booking system available to customers
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-booking-active"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={bookingForm.control}
+                      name="isBookingEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Accept New Bookings</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Allow customers to make new bookings
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-booking-enabled"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={bookingForm.control}
+                        name="contactEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="bookings@example.com" data-testid="input-contact-email" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={bookingForm.control}
+                        name="contactPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Phone</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="+216 12 345 678" data-testid="input-contact-phone" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={bookingForm.control}
+                        name="depositPercentage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Deposit Percentage</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                type="number" 
+                                min="1" 
+                                max="100" 
+                                placeholder="10" 
+                                data-testid="input-deposit-percentage"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Terms and Conditions */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Terms and Conditions</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={bookingForm.control}
+                          name="termsAndConditions.en"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>English</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Terms and conditions in English..." rows={4} data-testid="textarea-terms-en" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="termsAndConditions.fr"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>French</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Conditions générales en français..." rows={4} data-testid="textarea-terms-fr" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="termsAndConditions.de"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>German</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Geschäftsbedingungen auf Deutsch..." rows={4} data-testid="textarea-terms-de" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="termsAndConditions.ar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Arabic</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="الشروط والأحكام باللغة العربية..." rows={4} data-testid="textarea-terms-ar" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Privacy Policy */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Privacy Policy</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={bookingForm.control}
+                          name="privacyPolicy.en"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>English</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Privacy policy in English..." rows={4} data-testid="textarea-privacy-en" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="privacyPolicy.fr"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>French</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Politique de confidentialité en français..." rows={4} data-testid="textarea-privacy-fr" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="privacyPolicy.de"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>German</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Datenschutzerklärung auf Deutsch..." rows={4} data-testid="textarea-privacy-de" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="privacyPolicy.ar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Arabic</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="سياسة الخصوصية باللغة العربية..." rows={4} data-testid="textarea-privacy-ar" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Cancellation Policy */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Cancellation Policy</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={bookingForm.control}
+                          name="cancellationPolicy.en"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>English</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Cancellation policy in English..." rows={4} data-testid="textarea-cancellation-en" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="cancellationPolicy.fr"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>French</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Politique d'annulation en français..." rows={4} data-testid="textarea-cancellation-fr" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="cancellationPolicy.de"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>German</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Stornierungsrichtlinie auf Deutsch..." rows={4} data-testid="textarea-cancellation-de" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="cancellationPolicy.ar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Arabic</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="سياسة الإلغاء باللغة العربية..." rows={4} data-testid="textarea-cancellation-ar" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Booking Instructions */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Booking Instructions (Optional)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={bookingForm.control}
+                          name="bookingInstructions.en"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>English</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Special instructions for customers..." rows={3} data-testid="textarea-instructions-en" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="bookingInstructions.fr"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>French</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Instructions spéciales pour les clients..." rows={3} data-testid="textarea-instructions-fr" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="bookingInstructions.de"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>German</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Besondere Anweisungen für Kunden..." rows={3} data-testid="textarea-instructions-de" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={bookingForm.control}
+                          name="bookingInstructions.ar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Arabic</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="تعليمات خاصة للعملاء..." rows={3} data-testid="textarea-instructions-ar" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={updateBookingMutation.isPending} data-testid="button-save-booking">
+                      {updateBookingMutation.isPending ? "Saving..." : "Save Booking Settings"}
                     </Button>
                   </form>
                 </Form>

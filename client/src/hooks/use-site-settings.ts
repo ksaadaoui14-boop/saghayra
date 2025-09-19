@@ -22,6 +22,17 @@ export interface SiteSettings {
     twitter?: string;
     isActive: boolean;
   };
+  booking_info?: {
+    termsAndConditions: { en: string; fr: string; de: string; ar: string };
+    privacyPolicy: { en: string; fr: string; de: string; ar: string };
+    cancellationPolicy: { en: string; fr: string; de: string; ar: string };
+    bookingInstructions?: { en: string; fr: string; de: string; ar: string };
+    contactEmail?: string;
+    contactPhone?: string;
+    depositPercentage: number;
+    isBookingEnabled: boolean;
+    isActive: boolean;
+  };
 }
 
 export const useSiteSettings = () => {

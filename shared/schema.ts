@@ -234,10 +234,22 @@ export const companyInfoSchema = z.object({
   faviconUrl: z.string().min(1, "Favicon URL is required").optional(),
 });
 
+export const bookingInfoSchema = z.object({
+  termsAndConditions: multilingualTextSchema,
+  privacyPolicy: multilingualTextSchema,
+  cancellationPolicy: multilingualTextSchema,
+  bookingInstructions: multilingualTextSchema.optional(),
+  contactEmail: z.string().email("Please enter a valid email address").optional(),
+  contactPhone: z.string().optional(),
+  depositPercentage: z.number().min(1).max(100).default(10),
+  isBookingEnabled: z.boolean().default(true),
+});
+
 export const siteSettingValueSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("company_info"), ...companyInfoSchema.shape }),
   z.object({ type: z.literal("contact_details"), ...contactInfoSchema.shape }),
   z.object({ type: z.literal("social_media"), ...socialMediaSchema.shape }),
+  z.object({ type: z.literal("booking_info"), ...bookingInfoSchema.shape }),
 ]);
 
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).pick({

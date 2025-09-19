@@ -512,6 +512,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // CRITICAL: Check if booking system is enabled
+      const bookingSettings = await storage.getSiteSetting("booking_info");
+      if (bookingSettings && bookingSettings.value) {
+        const bookingInfo = bookingSettings.value as any;
+        if (bookingInfo.isBookingEnabled === false) {
+          return res.status(403).json({ 
+            error: "Bookings currently disabled", 
+            details: "New bookings are temporarily disabled. Please contact us directly for assistance." 
+          });
+        }
+      }
+
       // Verify the activity exists and is active
       const activity = await storage.getActivity(result.data.activityId);
       if (!activity || !activity.isActive) {
@@ -571,7 +583,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Calculate price inside transaction for consistency
           const totalPrice = pricePerPerson * result.data.groupSize;
-          const depositAmount = totalPrice * 0.1; // 10% deposit
+          
+          // Get deposit percentage from booking settings (default to 10% if not configured)
+          let depositPercentage = 0.1; // Default 10%
+          if (bookingSettings && bookingSettings.value) {
+            const bookingInfo = bookingSettings.value as any;
+            if (bookingInfo.depositPercentage && bookingInfo.depositPercentage > 0) {
+              depositPercentage = bookingInfo.depositPercentage / 100; // Convert percentage to decimal
+            }
+          }
+          const depositAmount = totalPrice * depositPercentage;
 
           // Create booking data with proper precision
           const bookingData = {
