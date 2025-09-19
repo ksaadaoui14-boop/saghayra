@@ -1,18 +1,153 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import { pgTable, text, varchar, integer, decimal, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Users table (regular website users - kept for future use)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
 
+// Admin users table (for content management)
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").notNull().default("admin"), // admin, super_admin
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  lastLogin: timestamp("last_login"),
+});
+
+// Activities/Tours table
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: jsonb("title").notNull(), // {en: "title", fr: "titre", de: "titel", ar: "عنوان"}
+  description: jsonb("description").notNull(),
+  highlights: jsonb("highlights").notNull(), // array of strings per language
+  category: text("category").notNull(), // adventure, cultural, etc.
+  duration: text("duration").notNull(),
+  groupSize: text("group_size").notNull(),
+  prices: jsonb("prices").notNull(), // {TND: 180, USD: 60, EUR: 55}
+  imageUrl: text("image_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Bookings table
+export const bookings = pgTable("bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  activityId: varchar("activity_id").notNull().references(() => activities.id),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone"),
+  bookingDate: timestamp("booking_date").notNull(),
+  groupSize: integer("group_size").notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull(), // TND, USD, EUR
+  status: text("status").notNull().default("pending"), // pending, confirmed, cancelled, completed
+  paymentStatus: text("payment_status").notNull().default("unpaid"), // unpaid, deposit_paid, fully_paid, refunded
+  paymentMethod: text("payment_method"), // stripe, paypal
+  paymentId: text("payment_id"), // external payment ID
+  specialRequests: text("special_requests"),
+  language: text("language").notNull().default("en"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Gallery items table
+export const galleryItems = pgTable("gallery_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: jsonb("title").notNull(),
+  description: jsonb("description").notNull(),
+  type: text("type").notNull(), // image, video
+  url: text("url").notNull(), // main file URL
+  thumbnailUrl: text("thumbnail_url"), // thumbnail for videos
+  category: text("category"), // activity type or general category
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Relations
+export const activitiesRelations = relations(activities, ({ many }) => ({
+  bookings: many(bookings),
+}));
+
+export const bookingsRelations = relations(bookings, ({ one }) => ({
+  activity: one(activities, {
+    fields: [bookings.activityId],
+    references: [activities.id],
+  }),
+}));
+
+// Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export const insertAdminUserSchema = createInsertSchema(adminUsers).pick({
+  username: true,
+  email: true,
+  password: true,
+  role: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).pick({
+  title: true,
+  description: true,
+  highlights: true,
+  category: true,
+  duration: true,
+  groupSize: true,
+  prices: true,
+  imageUrl: true,
+  isActive: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).pick({
+  activityId: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  bookingDate: true,
+  groupSize: true,
+  totalPrice: true,
+  depositAmount: true,
+  currency: true,
+  paymentMethod: true,
+  specialRequests: true,
+  language: true,
+});
+
+export const insertGalleryItemSchema = createInsertSchema(galleryItems).pick({
+  title: true,
+  description: true,
+  type: true,
+  url: true,
+  thumbnailUrl: true,
+  category: true,
+  isActive: true,
+  sortOrder: true,
+});
+
+// Type exports
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+export type GalleryItem = typeof galleryItems.$inferSelect;
+export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
