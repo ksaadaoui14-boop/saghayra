@@ -16,7 +16,7 @@ import {
   galleryItems
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte, ne } from "drizzle-orm";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
@@ -43,6 +43,7 @@ export interface IStorage {
   getAllBookings(): Promise<(Booking & { activity: Activity })[]>;
   getBooking(id: string): Promise<(Booking & { activity: Activity }) | undefined>;
   getBookingsByEmail(email: string): Promise<Booking[]>;
+  getBookingsByDateAndActivity(activityId: string, bookingDate: Date): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBookingStatus(id: string, status: string): Promise<Booking | undefined>;
   updateBookingPayment(id: string, paymentStatus: string, paymentId?: string): Promise<Booking | undefined>;
@@ -178,6 +179,27 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(eq(bookings.customerEmail, email))
       .orderBy(desc(bookings.createdAt));
+  }
+
+  async getBookingsByDateAndActivity(activityId: string, bookingDate: Date): Promise<Booking[]> {
+    // Get bookings for specific activity and date (excluding cancelled bookings)
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    return await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.activityId, activityId),
+          gte(bookings.bookingDate, startOfDay),
+          lte(bookings.bookingDate, endOfDay),
+          ne(bookings.status, "cancelled") // Exclude cancelled bookings
+        )
+      );
   }
 
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {

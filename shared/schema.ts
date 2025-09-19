@@ -30,6 +30,7 @@ export const activities = pgTable("activities", {
   category: text("category").notNull(), // adventure, cultural, etc.
   duration: text("duration").notNull(),
   groupSize: text("group_size").notNull(),
+  capacity: integer("capacity").notNull().default(8), // Maximum number of people per booking date
   prices: jsonb("prices").notNull(), // {TND: 180, USD: 60, EUR: 55}
   imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
@@ -133,14 +134,14 @@ export const insertActivitySchema = createInsertSchema(activities).pick({
 });
 
 // Booking request schema for API (customer input only)
+// Note: totalPrice is calculated server-side for security
 export const createBookingRequestSchema = z.object({
   activityId: z.string().min(1, "Activity ID is required"),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email("Valid email address is required"),
   customerPhone: z.string().optional(),
-  bookingDate: z.coerce.date(), // Handles ISO strings and Date objects
+  bookingDate: z.coerce.date().refine(date => date > new Date(), "Booking date must be in the future"),
   groupSize: z.coerce.number().int().min(1, "Group size must be at least 1").max(20, "Group size cannot exceed 20"),
-  totalPrice: z.coerce.number().positive("Total price must be positive"),
   currency: z.enum(["TND", "USD", "EUR"]),
   paymentMethod: z.enum(["stripe", "paypal"]).optional(),
   specialRequests: z.string().optional(),

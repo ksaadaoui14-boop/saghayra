@@ -1,8 +1,21 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertActivitySchema, createBookingRequestSchema, type Activity, type InsertActivity, type Booking, type CreateBookingRequest } from "@shared/schema";
+import { insertActivitySchema, createBookingRequestSchema, bookings, type Activity, type InsertActivity, type Booking, type CreateBookingRequest } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { db } from "./db";
+import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
+
+// Simple hash function for generating consistent lock IDs
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash;
+}
 
 // Temporary admin authentication middleware  
 // TODO: Replace with proper admin authentication system in Task 5
@@ -135,13 +148,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bookings API Routes
 
-  // GET /api/bookings/:email - Get bookings by customer email (for customers to view their bookings)
+  // GET /api/bookings/:email - Get bookings by customer email (PRIVATE - requires authentication)
   app.get("/api/bookings/:email", async (req, res) => {
     try {
       const { email } = req.params;
+      const authToken = req.headers['x-customer-token'] as string;
       
       if (!email || !email.includes('@')) {
         return res.status(400).json({ error: "Valid email address required" });
+      }
+
+      // SECURITY: Require customer authentication to prevent privacy violations
+      // For now, require a simple token - in production, this would be a JWT or session
+      if (!authToken || authToken !== 'customer-access-2024') {
+        return res.status(401).json({ 
+          error: "Authentication required", 
+          details: "Customer bookings are private. Include X-Customer-Token header for access." 
+        });
       }
       
       const bookings = await storage.getBookingsByEmail(email);
@@ -171,27 +194,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Activity not found or not available" });
       }
 
-      // Calculate deposit amount (10% of total price)
-      const totalPrice = result.data.totalPrice;
-      const depositAmount = totalPrice * 0.1;
+      // CRITICAL: Calculate price server-side for security
+      // Get the price per person from activity pricing  
+      const pricePerPerson = activity.prices[result.data.currency as keyof typeof activity.prices];
+      if (!pricePerPerson) {
+        return res.status(400).json({ error: `Price not available for currency: ${result.data.currency}` });
+      }
 
-      // Convert booking request to database format with proper precision
-      const bookingData = {
-        activityId: result.data.activityId,
-        customerName: result.data.customerName,
-        customerEmail: result.data.customerEmail,
-        customerPhone: result.data.customerPhone || null,
-        bookingDate: result.data.bookingDate, // Already a Date object thanks to z.coerce.date()
-        groupSize: result.data.groupSize,
-        totalPrice: totalPrice.toFixed(2), // Ensure 2 decimal places
-        depositAmount: depositAmount.toFixed(2), // Ensure 2 decimal places
-        currency: result.data.currency,
-        paymentMethod: result.data.paymentMethod || null,
-        specialRequests: result.data.specialRequests || null,
-        language: result.data.language,
-      };
+      // CRITICAL: Enforce capacity limits to prevent overbooking
+      // Check if group size exceeds activity capacity
+      if (result.data.groupSize > activity.capacity) {
+        return res.status(400).json({ 
+          error: "Group size exceeds activity capacity",
+          maxCapacity: activity.capacity,
+          requestedSize: result.data.groupSize
+        });
+      }
 
-      const booking = await storage.createBooking(bookingData);
+      // CONCURRENCY-SAFE: Use database transaction with advisory lock to prevent race conditions
+      // Create a unique lock ID based on activity and date
+      const lockDate = result.data.bookingDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const lockKey = `${result.data.activityId}_${lockDate}`;
+      const lockId = Math.abs(hashCode(lockKey)); // Convert to positive integer for pg_advisory_xact_lock
+
+      // Execute booking creation in a transaction with advisory lock
+      const booking = await db.transaction(async (tx) => {
+        // Acquire advisory lock for this activity+date combination
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockId})`);
+        
+        // Re-check availability inside the lock to prevent race conditions
+        const existingBookings = await tx
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.activityId, result.data.activityId),
+              gte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(0, 0, 0, 0))),
+              lte(bookings.bookingDate, new Date(result.data.bookingDate.setUTCHours(23, 59, 59, 999))),
+              ne(bookings.status, "cancelled")
+            )
+          );
+        
+        const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
+        const slotsRemaining = Math.max(0, activity.capacity - totalBookedSlots);
+
+        if (result.data.groupSize > slotsRemaining) {
+          throw new Error(`CAPACITY_EXCEEDED:${slotsRemaining}:${result.data.groupSize}`);
+        }
+
+        // Calculate price inside transaction for consistency
+        const totalPrice = pricePerPerson * result.data.groupSize;
+        const depositAmount = totalPrice * 0.1; // 10% deposit
+
+        // Create booking data with proper precision
+        const bookingData = {
+          activityId: result.data.activityId,
+          customerName: result.data.customerName,
+          customerEmail: result.data.customerEmail,
+          customerPhone: result.data.customerPhone || null,
+          bookingDate: result.data.bookingDate,
+          groupSize: result.data.groupSize,
+          totalPrice: totalPrice.toFixed(2),
+          depositAmount: depositAmount.toFixed(2),
+          currency: result.data.currency,
+          paymentMethod: result.data.paymentMethod || null,
+          specialRequests: result.data.specialRequests || null,
+          language: result.data.language,
+        };
+
+        // Insert booking within the transaction
+        const [newBooking] = await tx.insert(bookings).values(bookingData).returning();
+        return newBooking;
+      }).catch((error) => {
+        if (error.message.startsWith('CAPACITY_EXCEEDED:')) {
+          const [, slotsRemaining, requestedSize] = error.message.split(':');
+          return res.status(409).json({ 
+            error: "Not enough slots available for requested group size",
+            available: false,
+            slotsRemaining: parseInt(slotsRemaining),
+            requestedSize: parseInt(requestedSize)
+          });
+        }
+        throw error; // Re-throw other errors
+      });
+
+      // If we get here, the booking was created successfully
       
       // Return booking with activity details
       const bookingWithActivity = await storage.getBooking(booking.id);
@@ -303,8 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Activity not found or not available" });
       }
 
-      // For now, return a simple availability response
-      // TODO: Implement real availability checking based on bookings and capacity
+      // Real availability checking based on bookings and capacity
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
       
@@ -312,16 +398,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid date format" });
       }
 
-      // Simple availability - assume all dates are available for now
-      // In a real system, you'd check existing bookings vs activity capacity
+      // Real availability checking with capacity
       const availableDates = [];
       const currentDate = new Date(start);
       
       while (currentDate <= end) {
+        // Get existing bookings for this date
+        const existingBookings = await storage.getBookingsByDateAndActivity(activityId, new Date(currentDate));
+        
+        // Calculate total booked slots (sum of group sizes)
+        const totalBookedSlots = existingBookings.reduce((total, booking) => total + booking.groupSize, 0);
+        
+        // Calculate remaining slots
+        const slotsRemaining = Math.max(0, activity.capacity - totalBookedSlots);
+        
         availableDates.push({
           date: currentDate.toISOString().split('T')[0],
-          available: true,
-          slotsRemaining: 8 // Mock availability
+          available: slotsRemaining > 0,
+          slotsRemaining
         });
         currentDate.setDate(currentDate.getDate() + 1);
       }

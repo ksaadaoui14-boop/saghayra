@@ -24,6 +24,7 @@ const seedActivities = [
     category: "adventure",
     duration: "2 days, 1 night",
     groupSize: "2-8 people",
+    capacity: 8,
     prices: {
       TND: 180,
       USD: 60,
@@ -54,6 +55,7 @@ const seedActivities = [
     category: "cultural",
     duration: "Evening (4 hours)",
     groupSize: "2-20 people",
+    capacity: 20,
     prices: {
       TND: 54,
       USD: 18,
@@ -84,6 +86,7 @@ const seedActivities = [
     category: "cultural",
     duration: "Full day (8 hours)",
     groupSize: "4-15 people",
+    capacity: 15,
     prices: {
       TND: 90,
       USD: 30,
