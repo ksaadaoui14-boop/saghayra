@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Users, Clock, CreditCard } from "lucide-react";
+import { Calendar, Users, Clock, CreditCard, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,8 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
       deposit: "Deposit Required (10%)",
       bookNow: "Book Now",
       payDeposit: "Pay Deposit",
-      nextStep: "Next Step"
+      nextStep: "Next Step",
+      contactWhatsApp: "Contact WhatsApp"
     },
     fr: {
       title: "Réservez Votre Aventure Désertique",
@@ -70,7 +71,8 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
       deposit: "Acompte Requis (10%)",
       bookNow: "Réserver Maintenant",
       payDeposit: "Payer l'Acompte",
-      nextStep: "Étape Suivante"
+      nextStep: "Étape Suivante",
+      contactWhatsApp: "Contacter WhatsApp"
     },
     de: {
       title: "Buchen Sie Ihr Wüstenabenteuer",
@@ -82,7 +84,8 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
       deposit: "Anzahlung Erforderlich (10%)",
       bookNow: "Jetzt Buchen",
       payDeposit: "Anzahlung Bezahlen",
-      nextStep: "Nächster Schritt"
+      nextStep: "Nächster Schritt",
+      contactWhatsApp: "WhatsApp Kontakt"
     },
     ar: {
       title: "احجز مغامرتك الصحراوية",
@@ -94,7 +97,8 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
       deposit: "عربون مطلوب (10%)",
       bookNow: "احجز الآن",
       payDeposit: "ادفع العربون",
-      nextStep: "الخطوة التالية"
+      nextStep: "الخطوة التالية",
+      contactWhatsApp: "تواصل واتساب"
     }
   };
 
@@ -111,6 +115,12 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
       currency: currentCurrency
     });
     alert(`Booking submitted! Total: ${currencySymbols[currentCurrency as keyof typeof currencySymbols]}${totalPrice}, Deposit: ${currencySymbols[currentCurrency as keyof typeof currencySymbols]}${depositAmount}`);
+  };
+
+  const handleWhatsAppContact = () => {
+    const whatsappUrl = "https://wa.me/21640676420";
+    window.open(whatsappUrl, '_blank');
+    console.log('WhatsApp contact opened');
   };
 
   return (
@@ -213,16 +223,28 @@ export default function BookingWidget({ currentLanguage, currentCurrency }: Book
               </div>
             </div>
 
-            {/* Book Button */}
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90" 
-              onClick={handleBooking}
-              disabled={!selectedDate || !selectedActivity}
-              data-testid="button-book-activity"
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              {t.payDeposit}
-            </Button>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90" 
+                onClick={handleBooking}
+                disabled={!selectedDate || !selectedActivity}
+                data-testid="button-book-activity"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                {t.payDeposit}
+              </Button>
+              
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={handleWhatsAppContact}
+                data-testid="button-whatsapp-contact"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                {t.contactWhatsApp}
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
