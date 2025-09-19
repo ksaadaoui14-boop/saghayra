@@ -4,6 +4,7 @@ import { Calendar, Users, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BookingWidget from "./BookingWidget";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 import heroImage from "@assets/generated_images/Sahara_desert_hero_background_840d4412.png";
 
 interface HeroProps {
@@ -13,6 +14,7 @@ interface HeroProps {
 
 export default function Hero({ currentLanguage, currentCurrency }: HeroProps) {
   const [showBooking, setShowBooking] = useState(false);
+  const { data: siteSettings } = useSiteSettings();
 
   const translations = {
     en: {
@@ -89,13 +91,19 @@ export default function Hero({ currentLanguage, currentCurrency }: HeroProps) {
           <div className={`text-white space-y-8 ${isRTL ? 'lg:order-2 text-right' : ''}`}>
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight">
-                {t.title}
+                {siteSettings?.company_info?.isActive && siteSettings.company_info.name
+                  ? siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en
+                  : t.title}
               </h1>
               <p className="text-xl sm:text-2xl text-white/90 font-medium">
-                {t.subtitle}
+                {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline
+                  ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
+                  : t.subtitle}
               </p>
               <p className="text-lg text-white/80 max-w-2xl">
-                {t.description}
+                {siteSettings?.company_info?.isActive && siteSettings.company_info.about
+                  ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
+                  : t.description}
               </p>
             </div>
 

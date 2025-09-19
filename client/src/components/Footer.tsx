@@ -1,6 +1,7 @@
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface FooterProps {
   currentLanguage: string;
@@ -8,6 +9,7 @@ interface FooterProps {
 
 export default function Footer({ currentLanguage }: FooterProps) {
   const isRTL = currentLanguage === 'ar';
+  const { data: siteSettings, isLoading: settingsLoading } = useSiteSettings();
 
   const translations = {
     en: {
@@ -98,11 +100,28 @@ export default function Footer({ currentLanguage }: FooterProps) {
 
   const t = translations[currentLanguage as keyof typeof translations] || translations.en;
 
-  const socialLinks = [
-    { icon: Facebook, href: "#", name: "Facebook" },
-    { icon: Instagram, href: "#", name: "Instagram" }, 
-    { icon: Youtube, href: "#", name: "YouTube" },
-  ];
+  // Dynamic social links from settings
+  const socialLinks = [];
+  if (siteSettings?.social_media?.isActive) {
+    if (siteSettings.social_media.facebook) {
+      socialLinks.push({ icon: Facebook, href: siteSettings.social_media.facebook, name: "Facebook" });
+    }
+    if (siteSettings.social_media.instagram) {
+      socialLinks.push({ icon: Instagram, href: siteSettings.social_media.instagram, name: "Instagram" });
+    }
+    if (siteSettings.social_media.twitter) {
+      socialLinks.push({ icon: Youtube, href: siteSettings.social_media.twitter, name: "Twitter" });
+    }
+  }
+  
+  // Fallback social links if no settings loaded
+  if (socialLinks.length === 0) {
+    socialLinks.push(
+      { icon: Facebook, href: "#", name: "Facebook" },
+      { icon: Instagram, href: "#", name: "Instagram" }, 
+      { icon: Youtube, href: "#", name: "YouTube" }
+    );
+  }
 
   const quickLinks = [
     { name: t.links.home, href: "/" },
@@ -120,11 +139,21 @@ export default function Footer({ currentLanguage }: FooterProps) {
           {/* Brand */}
           <div className="space-y-4">
             <div>
-              <h3 className="text-2xl font-serif font-bold text-primary">Sghayra Tours</h3>
-              <p className="text-muted-foreground">{t.tagline}</p>
+              <h3 className="text-2xl font-serif font-bold text-primary">
+                {siteSettings?.company_info?.isActive && siteSettings.company_info.name 
+                  ? siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en
+                  : "Sghayra Tours"}
+              </h3>
+              <p className="text-muted-foreground">
+                {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline 
+                  ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
+                  : t.tagline}
+              </p>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Experience the authentic beauty of the Tunisian Sahara with our expert local guides and traditional Berber hospitality.
+              {siteSettings?.company_info?.isActive && siteSettings.company_info.about 
+                ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
+                : "Experience the authentic beauty of the Tunisian Sahara with our expert local guides and traditional Berber hospitality."}
             </p>
           </div>
 
@@ -154,15 +183,27 @@ export default function Footer({ currentLanguage }: FooterProps) {
             <div className="space-y-3">
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">{t.address}</span>
+                <span className="text-sm text-muted-foreground">
+                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.address 
+                    ? siteSettings.contact_details.address[currentLanguage as keyof typeof siteSettings.contact_details.address] || siteSettings.contact_details.address.en
+                    : t.address}
+                </span>
               </div>
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">+216 XX XXX XXX</span>
+                <span className="text-sm text-muted-foreground">
+                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.phone 
+                    ? siteSettings.contact_details.phone
+                    : "+216 XX XXX XXX"}
+                </span>
               </div>
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Mail className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">info@sghayratours.com</span>
+                <span className="text-sm text-muted-foreground">
+                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.email 
+                    ? siteSettings.contact_details.email
+                    : "info@sghayratours.com"}
+                </span>
               </div>
             </div>
           </div>
@@ -177,7 +218,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
                   variant="outline"
                   size="icon"
                   className="hover:bg-primary hover:text-primary-foreground"
-                  onClick={() => console.log(`Visit ${social.name}`)}
+                  onClick={() => social.href !== "#" ? window.open(social.href, '_blank', 'noopener,noreferrer') : console.log(`Visit ${social.name}`)}
                   data-testid={`link-social-${social.name.toLowerCase()}`}
                 >
                   <social.icon className="w-5 h-5" />

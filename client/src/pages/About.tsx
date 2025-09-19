@@ -1,12 +1,14 @@
 import { MapPin, Star, Users, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface AboutProps {
   currentLanguage: string;
 }
 
 export default function About({ currentLanguage }: AboutProps) {
+  const { data: siteSettings } = useSiteSettings();
   const translations = {
     en: {
       title: "About Sghayra Tours",
@@ -156,10 +158,14 @@ export default function About({ currentLanguage }: AboutProps) {
       <div className="bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            {t.title}
+            {siteSettings?.company_info?.isActive && siteSettings.company_info.name
+              ? `About ${siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en}`
+              : t.title}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t.subtitle}
+            {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline
+              ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
+              : t.subtitle}
           </p>
         </div>
       </div>
@@ -171,7 +177,9 @@ export default function About({ currentLanguage }: AboutProps) {
             {t.whoWeAre}
           </h2>
           <p className="text-lg text-muted-foreground max-w-4xl mx-auto text-center leading-relaxed">
-            {t.whoWeAreDesc}
+            {siteSettings?.company_info?.isActive && siteSettings.company_info.about
+              ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
+              : t.whoWeAreDesc}
           </p>
         </div>
 

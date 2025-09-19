@@ -104,6 +104,8 @@ export default function AdminSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Force refetch by removing from cache completely
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Success", description: "Company information updated successfully" });
     },
     onError: async (error: any) => {
@@ -132,6 +134,8 @@ export default function AdminSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Force refetch by removing from cache completely
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Success", description: "Contact details updated successfully" });
     },
     onError: async (error: any) => {
@@ -160,6 +164,8 @@ export default function AdminSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Force refetch by removing from cache completely
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Success", description: "Social media settings updated successfully" });
     },
     onError: async (error: any) => {
