@@ -319,6 +319,23 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/gallery")}>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5" />
+                <span>Gallery Management</span>
+              </CardTitle>
+              <CardDescription>
+                Upload and manage photos and videos for the website
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Organize media content with object storage
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Bookings */}

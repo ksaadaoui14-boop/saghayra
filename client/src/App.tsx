@@ -12,6 +12,8 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminActivities from "@/pages/AdminActivities";
 import AdminBookings from "@/pages/AdminBookings";
 import AdminTranslations from "@/pages/AdminTranslations";
+import AdminGallery from "@/pages/AdminGallery";
+import Gallery from "@/pages/Gallery";
 import NotFound from "@/pages/not-found";
 
 function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurrentCurrency }: { 
@@ -28,8 +30,24 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
       <Route path="/admin/activities" component={AdminActivities} />
       <Route path="/admin/bookings" component={AdminBookings} />
       <Route path="/admin/translations" component={AdminTranslations} />
+      <Route path="/admin/gallery" component={AdminGallery} />
       
       {/* Public Routes - With Header/Footer */}
+      <Route path="/gallery">
+        <div className="min-h-screen flex flex-col">
+          <Header 
+            currentLanguage={currentLanguage}
+            currentCurrency={currentCurrency}
+            onLanguageChange={setCurrentLanguage}
+            onCurrencyChange={setCurrentCurrency}
+          />
+          <main className="flex-1">
+            <Gallery currentLanguage={currentLanguage} />
+          </main>
+          <Footer currentLanguage={currentLanguage} />
+        </div>
+      </Route>
+      
       <Route path="/">
         <div className="min-h-screen flex flex-col">
           <Header 

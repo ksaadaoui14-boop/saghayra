@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertActivitySchema, createBookingRequestSchema, bookings, type Activity, type InsertActivity, type Booking, type CreateBookingRequest } from "@shared/schema";
+import { insertActivitySchema, createBookingRequestSchema, insertGalleryItemSchema, bookings, type Activity, type InsertActivity, type Booking, type CreateBookingRequest, type GalleryItem, type InsertGalleryItem } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
 import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
@@ -210,6 +210,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting activity:", error);
       res.status(500).json({ error: "Failed to delete activity" });
+    }
+  });
+
+  // Gallery API Routes
+
+  // GET /api/gallery - Fetch all active gallery items for public display
+  app.get("/api/gallery", async (req, res) => {
+    try {
+      const galleryItems = await storage.getAllGalleryItems(true); // Only active items
+      res.json(galleryItems);
+    } catch (error) {
+      console.error("Error fetching gallery items:", error);
+      res.status(500).json({ error: "Failed to fetch gallery items" });
+    }
+  });
+
+  // GET /api/gallery/:id - Fetch specific gallery item (public - only active items)
+  app.get("/api/gallery/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await storage.getGalleryItem(id);
+      
+      if (!item || !item.isActive) {
+        return res.status(404).json({ error: "Gallery item not found" });
+      }
+      
+      res.json(item);
+    } catch (error) {
+      console.error("Error fetching gallery item:", error);
+      res.status(500).json({ error: "Failed to fetch gallery item" });
+    }
+  });
+
+  // GET /api/admin/gallery - Fetch all gallery items for admin (including inactive)
+  app.get("/api/admin/gallery", requireAdminAuth, async (req, res) => {
+    try {
+      const galleryItems = await storage.getAllGalleryItems(false); // All items
+      res.json(galleryItems);
+    } catch (error) {
+      console.error("Error fetching admin gallery items:", error);
+      res.status(500).json({ error: "Failed to fetch gallery items" });
+    }
+  });
+
+  // POST /api/admin/gallery - Create new gallery item (admin only)
+  app.post("/api/admin/gallery", requireAdminAuth, async (req, res) => {
+    try {
+      const result = insertGalleryItemSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const validationError = fromZodError(result.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError.message 
+        });
+      }
+
+      const galleryItem = await storage.createGalleryItem(result.data);
+      res.status(201).json(galleryItem);
+    } catch (error) {
+      console.error("Error creating gallery item:", error);
+      res.status(500).json({ error: "Failed to create gallery item" });
+    }
+  });
+
+  // PUT /api/admin/gallery/:id - Update gallery item (admin only)
+  app.put("/api/admin/gallery/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Validate the update data (partial update allowed)
+      const updateData = insertGalleryItemSchema.partial().safeParse(req.body);
+      
+      if (!updateData.success) {
+        const validationError = fromZodError(updateData.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError.message 
+        });
+      }
+
+      const galleryItem = await storage.updateGalleryItem(id, updateData.data);
+      
+      if (!galleryItem) {
+        return res.status(404).json({ error: "Gallery item not found" });
+      }
+      
+      res.json(galleryItem);
+    } catch (error) {
+      console.error("Error updating gallery item:", error);
+      res.status(500).json({ error: "Failed to update gallery item" });
+    }
+  });
+
+  // DELETE /api/admin/gallery/:id - Delete gallery item (admin only)
+  app.delete("/api/admin/gallery/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteGalleryItem(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Gallery item not found" });
+      }
+      
+      res.json({ success: true, message: "Gallery item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting gallery item:", error);
+      res.status(500).json({ error: "Failed to delete gallery item" });
     }
   });
 

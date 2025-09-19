@@ -68,6 +68,10 @@ export const galleryItems = pgTable("gallery_items", {
   type: text("type").notNull(), // image, video
   url: text("url").notNull(), // main file URL
   thumbnailUrl: text("thumbnail_url"), // thumbnail for videos
+  storageKey: text("storage_key"), // object storage key/path
+  bucketId: text("bucket_id"), // object storage bucket ID
+  contentType: text("content_type"), // MIME type
+  fileSize: integer("file_size"), // file size in bytes
   category: text("category"), // activity type or general category
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
