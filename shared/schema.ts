@@ -132,6 +132,22 @@ export const insertActivitySchema = createInsertSchema(activities).pick({
   prices: pricesSchema,
 });
 
+// Booking request schema for API (customer input only)
+export const createBookingRequestSchema = z.object({
+  activityId: z.string().min(1, "Activity ID is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  customerEmail: z.string().email("Valid email address is required"),
+  customerPhone: z.string().optional(),
+  bookingDate: z.coerce.date(), // Handles ISO strings and Date objects
+  groupSize: z.coerce.number().int().min(1, "Group size must be at least 1").max(20, "Group size cannot exceed 20"),
+  totalPrice: z.coerce.number().positive("Total price must be positive"),
+  currency: z.enum(["TND", "USD", "EUR"]),
+  paymentMethod: z.enum(["stripe", "paypal"]).optional(),
+  specialRequests: z.string().optional(),
+  language: z.enum(["en", "fr", "de", "ar"]).default("en"),
+});
+
+// Full booking schema for database operations
 export const insertBookingSchema = createInsertSchema(bookings).pick({
   activityId: true,
   customerName: true,
@@ -169,6 +185,7 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 export type Booking = typeof bookings.$inferSelect;
+export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 
 export type GalleryItem = typeof galleryItems.$inferSelect;
