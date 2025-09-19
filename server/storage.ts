@@ -11,12 +11,15 @@ import {
   type InsertGalleryItem,
   type Availability,
   type InsertAvailability,
+  type SiteSetting,
+  type InsertSiteSetting,
   users,
   adminUsers,
   activities,
   bookings,
   galleryItems,
-  availability
+  availability,
+  siteSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, ne } from "drizzle-orm";
@@ -63,6 +66,12 @@ export interface IStorage {
   getAvailabilityForDate(activityId: string, date: Date): Promise<{ availableSpots: number; totalCapacity: number; isBlocked: boolean; } | null>;
   createAvailability(availability: InsertAvailability): Promise<Availability>;
   updateAvailability(id: string, availability: Partial<InsertAvailability>): Promise<Availability | undefined>;
+
+  // Site Settings
+  getAllSiteSettings(activeOnly?: boolean): Promise<SiteSetting[]>;
+  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
+  createOrUpdateSiteSetting(key: string, value: any, isActive?: boolean): Promise<SiteSetting>;
+  deleteSiteSetting(key: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -374,6 +383,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(availability.id, id))
       .returning();
     return availabilityRecord || undefined;
+  }
+
+  // Site Settings
+  async getAllSiteSettings(activeOnly = false): Promise<SiteSetting[]> {
+    const query = db.select().from(siteSettings);
+    if (activeOnly) {
+      return await query.where(eq(siteSettings.isActive, true)).orderBy(siteSettings.key);
+    }
+    return await query.orderBy(siteSettings.key);
+  }
+
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return setting || undefined;
+  }
+
+  async createOrUpdateSiteSetting(key: string, value: any, isActive?: boolean): Promise<SiteSetting> {
+    // Check if setting already exists
+    const existingSetting = await this.getSiteSetting(key);
+    
+    if (existingSetting) {
+      // Update existing setting
+      const updateData: any = { value, updatedAt: new Date() };
+      if (isActive !== undefined) {
+        updateData.isActive = isActive;
+      }
+      
+      const [updated] = await db
+        .update(siteSettings)
+        .set(updateData)
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      // Create new setting
+      const insertData: any = { key, value };
+      if (isActive !== undefined) {
+        insertData.isActive = isActive;
+      }
+      
+      const [created] = await db
+        .insert(siteSettings)
+        .values(insertData)
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteSiteSetting(key: string): Promise<boolean> {
+    const result = await db.delete(siteSettings).where(eq(siteSettings.key, key));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

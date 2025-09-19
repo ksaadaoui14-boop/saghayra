@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertActivitySchema, createBookingRequestSchema, insertGalleryItemSchema, bookings, type Activity, type InsertActivity, type Booking, type CreateBookingRequest, type GalleryItem, type InsertGalleryItem } from "@shared/schema";
+import { insertActivitySchema, createBookingRequestSchema, insertGalleryItemSchema, insertSiteSettingSchema, siteSettingValueSchema, bookings, type Activity, type InsertActivity, type Booking, type CreateBookingRequest, type GalleryItem, type InsertGalleryItem, type SiteSetting, type InsertSiteSetting } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
 import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
@@ -319,6 +319,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting gallery item:", error);
       res.status(500).json({ error: "Failed to delete gallery item" });
+    }
+  });
+
+  // Site Settings API Routes
+
+  // GET /api/settings - Get all site settings for public display
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings(true); // Only active settings
+      
+      // Transform to key-value pairs for easier frontend use
+      const settingsMap: { [key: string]: any } = {};
+      settings.forEach(setting => {
+        settingsMap[setting.key] = setting.value;
+      });
+      
+      res.json(settingsMap);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ error: "Failed to fetch site settings" });
+    }
+  });
+
+  // GET /api/settings/:key - Get specific setting by key (public)
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSiteSetting(key);
+      
+      if (!setting || !setting.isActive) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      
+      res.json({ key: setting.key, value: setting.value });
+    } catch (error) {
+      console.error("Error fetching site setting:", error);
+      res.status(500).json({ error: "Failed to fetch site setting" });
+    }
+  });
+
+  // GET /api/admin/settings - Get all settings for admin (including inactive)
+  app.get("/api/admin/settings", requireAdminAuth, async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings(false); // All settings
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching admin site settings:", error);
+      res.status(500).json({ error: "Failed to fetch site settings" });
+    }
+  });
+
+  // PUT /api/admin/settings/:key - Create or update setting (admin only)
+  app.put("/api/admin/settings/:key", requireAdminAuth, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { value, isActive } = req.body;
+      
+      if (!value) {
+        return res.status(400).json({ error: "Setting value is required" });
+      }
+      
+      // Validate the value structure using Zod
+      const result = siteSettingValueSchema.safeParse(value);
+      if (!result.success) {
+        const validationError = fromZodError(result.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError.message 
+        });
+      }
+      
+      // Ensure key matches value.type for data integrity
+      if (result.data.type !== key) {
+        return res.status(400).json({ 
+          error: "Key mismatch", 
+          details: `Key '${key}' does not match value type '${result.data.type}'` 
+        });
+      }
+      
+      const setting = await storage.createOrUpdateSiteSetting(key, value, isActive);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating site setting:", error);
+      res.status(500).json({ error: "Failed to update site setting" });
+    }
+  });
+
+  // DELETE /api/admin/settings/:key - Delete setting (admin only)
+  app.delete("/api/admin/settings/:key", requireAdminAuth, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const deleted = await storage.deleteSiteSetting(key);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      
+      res.json({ success: true, message: "Setting deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting site setting:", error);
+      res.status(500).json({ error: "Failed to delete site setting" });
     }
   });
 

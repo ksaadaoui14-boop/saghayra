@@ -90,6 +90,16 @@ export const availability = pgTable("availability", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
+// Site settings table for managing company details and site configuration
+export const siteSettings = pgTable("site_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(), // unique identifier for the setting (e.g., 'company_info', 'contact_details')
+  value: jsonb("value").notNull(), // stores the setting data as JSON
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 // Relations
 export const activitiesRelations = relations(activities, ({ many }) => ({
   bookings: many(bookings),
@@ -199,6 +209,43 @@ export const insertGalleryItemSchema = createInsertSchema(galleryItems).pick({
   sortOrder: true,
 });
 
+// Site settings schemas
+const contactInfoSchema = z.object({
+  phone: z.string(),
+  email: z.string().email(),
+  address: multilingualTextSchema,
+  whatsapp: z.string().optional(),
+});
+
+const socialMediaSchema = z.object({
+  facebook: z.string().url().optional(),
+  instagram: z.string().url().optional(),
+  twitter: z.string().url().optional(),
+  linkedin: z.string().url().optional(),
+  youtube: z.string().url().optional(),
+  tiktok: z.string().url().optional(),
+});
+
+const companyInfoSchema = z.object({
+  name: multilingualTextSchema,
+  tagline: multilingualTextSchema.optional(),
+  about: multilingualTextSchema,
+  logoUrl: z.string().url().optional(),
+  faviconUrl: z.string().url().optional(),
+});
+
+export const siteSettingValueSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("company_info"), ...companyInfoSchema.shape }),
+  z.object({ type: z.literal("contact_details"), ...contactInfoSchema.shape }),
+  z.object({ type: z.literal("social_media"), ...socialMediaSchema.shape }),
+]);
+
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).pick({
+  key: true,
+  value: true,
+  isActive: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -218,3 +265,7 @@ export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
 
 export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = typeof availability.$inferInsert;
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type SiteSettingValue = z.infer<typeof siteSettingValueSchema>;
