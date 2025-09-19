@@ -9,7 +9,10 @@ interface FooterProps {
 
 export default function Footer({ currentLanguage }: FooterProps) {
   const isRTL = currentLanguage === 'ar';
-  const { data: siteSettings, isLoading: settingsLoading } = useSiteSettings();
+  const { data: settings, isLoading: settingsLoading } = useSiteSettings();
+  
+  // Type assertion to help TypeScript understand the data structure
+  const siteSettings = settings as any;
 
   const translations = {
     en: {
@@ -102,7 +105,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
 
   // Dynamic social links from settings
   const socialLinks = [];
-  if (siteSettings?.social_media?.isActive) {
+  if (siteSettings?.social_media) {
     if (siteSettings.social_media.facebook) {
       socialLinks.push({ icon: Facebook, href: siteSettings.social_media.facebook, name: "Facebook" });
     }
@@ -140,18 +143,18 @@ export default function Footer({ currentLanguage }: FooterProps) {
           <div className="space-y-4">
             <div>
               <h3 className="text-2xl font-serif font-bold text-primary">
-                {siteSettings?.company_info?.isActive && siteSettings.company_info.name 
+                {siteSettings?.company_info?.name 
                   ? siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en
                   : "Sghayra Tours"}
               </h3>
               <p className="text-muted-foreground">
-                {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline 
+                {siteSettings?.company_info?.tagline 
                   ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
                   : t.tagline}
               </p>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
-              {siteSettings?.company_info?.isActive && siteSettings.company_info.about 
+              {siteSettings?.company_info?.about 
                 ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
                 : "Experience the authentic beauty of the Tunisian Sahara with our expert local guides and traditional Berber hospitality."}
             </p>
@@ -184,7 +187,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.address 
+                  {siteSettings?.contact_details?.address 
                     ? siteSettings.contact_details.address[currentLanguage as keyof typeof siteSettings.contact_details.address] || siteSettings.contact_details.address.en
                     : t.address}
                 </span>
@@ -192,7 +195,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Phone className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.phone 
+                  {siteSettings?.contact_details?.phone 
                     ? siteSettings.contact_details.phone
                     : "+216 XX XXX XXX"}
                 </span>
@@ -200,7 +203,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Mail className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  {siteSettings?.contact_details?.isActive && siteSettings.contact_details.email 
+                  {siteSettings?.contact_details?.email 
                     ? siteSettings.contact_details.email
                     : "info@sghayratours.com"}
                 </span>

@@ -14,7 +14,10 @@ interface HeroProps {
 
 export default function Hero({ currentLanguage, currentCurrency }: HeroProps) {
   const [showBooking, setShowBooking] = useState(false);
-  const { data: siteSettings } = useSiteSettings();
+  const { data: settings } = useSiteSettings();
+  
+  // Type assertion to help TypeScript understand the data structure
+  const siteSettings = settings as any;
 
   const translations = {
     en: {
@@ -91,17 +94,17 @@ export default function Hero({ currentLanguage, currentCurrency }: HeroProps) {
           <div className={`text-white space-y-8 ${isRTL ? 'lg:order-2 text-right' : ''}`}>
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold leading-tight">
-                {siteSettings?.company_info?.isActive && siteSettings.company_info.name
+                {siteSettings?.company_info?.name
                   ? siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en
                   : t.title}
               </h1>
               <p className="text-xl sm:text-2xl text-white/90 font-medium">
-                {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline
+                {siteSettings?.company_info?.tagline
                   ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
                   : t.subtitle}
               </p>
               <p className="text-lg text-white/80 max-w-2xl">
-                {siteSettings?.company_info?.isActive && siteSettings.company_info.about
+                {siteSettings?.company_info?.about
                   ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
                   : t.description}
               </p>

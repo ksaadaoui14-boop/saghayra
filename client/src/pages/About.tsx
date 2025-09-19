@@ -8,7 +8,10 @@ interface AboutProps {
 }
 
 export default function About({ currentLanguage }: AboutProps) {
-  const { data: siteSettings } = useSiteSettings();
+  const { data: settings } = useSiteSettings();
+  
+  // Type assertion to help TypeScript understand the data structure
+  const siteSettings = settings as any;
   const translations = {
     en: {
       title: "About Sghayra Tours",
@@ -158,12 +161,12 @@ export default function About({ currentLanguage }: AboutProps) {
       <div className="bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            {siteSettings?.company_info?.isActive && siteSettings.company_info.name
+            {siteSettings?.company_info?.name
               ? `About ${siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en}`
               : t.title}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {siteSettings?.company_info?.isActive && siteSettings.company_info.tagline
+            {siteSettings?.company_info?.tagline
               ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
               : t.subtitle}
           </p>
@@ -177,7 +180,7 @@ export default function About({ currentLanguage }: AboutProps) {
             {t.whoWeAre}
           </h2>
           <p className="text-lg text-muted-foreground max-w-4xl mx-auto text-center leading-relaxed">
-            {siteSettings?.company_info?.isActive && siteSettings.company_info.about
+            {siteSettings?.company_info?.about
               ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
               : t.whoWeAreDesc}
           </p>

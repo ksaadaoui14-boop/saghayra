@@ -218,20 +218,20 @@ export const contactInfoSchema = z.object({
 });
 
 export const socialMediaSchema = z.object({
-  facebook: z.string().url().optional(),
-  instagram: z.string().url().optional(),
-  twitter: z.string().url().optional(),
-  linkedin: z.string().url().optional(),
-  youtube: z.string().url().optional(),
-  tiktok: z.string().url().optional(),
+  facebook: z.string().url("Please enter a valid URL").optional(),
+  instagram: z.string().url("Please enter a valid URL").optional(), 
+  twitter: z.string().url("Please enter a valid URL").optional(),
+  linkedin: z.string().url("Please enter a valid URL").optional(),
+  youtube: z.string().url("Please enter a valid URL").optional(),
+  tiktok: z.string().url("Please enter a valid URL").optional(),
 });
 
 export const companyInfoSchema = z.object({
   name: multilingualTextSchema,
   tagline: multilingualTextSchema.optional(),
   about: multilingualTextSchema,
-  logoUrl: z.string().url().optional(),
-  faviconUrl: z.string().url().optional(),
+  logoUrl: z.string().min(1, "Logo URL is required").optional(),
+  faviconUrl: z.string().min(1, "Favicon URL is required").optional(),
 });
 
 export const siteSettingValueSchema = z.discriminatedUnion("type", [
