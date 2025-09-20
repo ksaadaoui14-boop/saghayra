@@ -299,21 +299,23 @@ export default function AdminGallery() {
                 Add Item
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>Add Gallery Item</DialogTitle>
                 <DialogDescription>
-                  Add a new image or video to the gallery. Upload your files to object storage first, then add the URL here.
+                  Add a new image or video to the gallery. Upload your files and fill in the details below.
                 </DialogDescription>
               </DialogHeader>
-              <UploadForm 
-                onSubmit={createGalleryItemMutation.mutate}
-                isLoading={createGalleryItemMutation.isPending}
-                newItemData={newItemData}
-                setNewItemData={setNewItemData}
-                handleGetUploadParameters={handleGetUploadParameters}
-                handleFileUploadComplete={handleFileUploadComplete}
-              />
+              <div className="overflow-auto flex-1">
+                <UploadForm 
+                  onSubmit={createGalleryItemMutation.mutate}
+                  isLoading={createGalleryItemMutation.isPending}
+                  newItemData={newItemData}
+                  setNewItemData={setNewItemData}
+                  handleGetUploadParameters={handleGetUploadParameters}
+                  handleFileUploadComplete={handleFileUploadComplete}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -459,19 +461,21 @@ export default function AdminGallery() {
       {/* Edit Dialog */}
       {editingItem && (
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Edit Gallery Item</DialogTitle>
               <DialogDescription>
                 Update the gallery item details.
               </DialogDescription>
             </DialogHeader>
-            <EditForm 
-              item={editingItem}
-              onSubmit={(data) => updateGalleryItemMutation.mutate({ id: editingItem.id, data })}
-              isLoading={updateGalleryItemMutation.isPending}
-              onCancel={() => setEditingItem(null)}
-            />
+            <div className="overflow-auto flex-1">
+              <EditForm 
+                item={editingItem}
+                onSubmit={(data) => updateGalleryItemMutation.mutate({ id: editingItem.id, data })}
+                isLoading={updateGalleryItemMutation.isPending}
+                onCancel={() => setEditingItem(null)}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -507,11 +511,13 @@ function UploadForm({
 
   // Update form data when newItemData changes (from upload)
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      url: newItemData.url || prev.url,
-      type: newItemData.type || prev.type,
-    }));
+    if (newItemData.url) {
+      setFormData(prev => ({
+        ...prev,
+        url: newItemData.url,
+        type: newItemData.type || prev.type,
+      }));
+    }
   }, [newItemData.url, newItemData.type]);
 
   const handleSubmit = (e: React.FormEvent) => {
