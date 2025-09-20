@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { LocationDisplay } from "@/components/LocationDisplay";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface ContactProps {
   currentLanguage: string;
@@ -13,6 +15,10 @@ interface ContactProps {
 export default function Contact({ currentLanguage }: ContactProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { data: settings } = useSiteSettings();
+  
+  // Type assertion to help TypeScript understand the data structure
+  const siteSettings = settings as any;
   
   const [formData, setFormData] = useState({
     name: "",
@@ -50,20 +56,14 @@ export default function Contact({ currentLanguage }: ContactProps) {
         {
           icon: Phone,
           title: "Call Us",
-          value: "+216 12 345 678",
+          value: siteSettings?.contact_details?.phone || "+216 12 345 678",
           description: "Mon-Fri 9AM-6PM GMT+1"
         },
         {
           icon: Mail,
           title: "Email Us",
-          value: "info@sghayratours.com",
+          value: siteSettings?.contact_details?.email || "info@sghayratours.com",
           description: "We'll respond within 24 hours"
-        },
-        {
-          icon: MapPin,
-          title: "Visit Us",
-          value: "Douz, Kebili, Tunisia",
-          description: "Gateway to the Sahara"
         },
         {
           icon: Clock,
@@ -102,20 +102,14 @@ export default function Contact({ currentLanguage }: ContactProps) {
         {
           icon: Phone,
           title: "Appelez-Nous",
-          value: "+216 12 345 678",
+          value: siteSettings?.contact_details?.phone || "+216 12 345 678",
           description: "Lun-Ven 9h-18h GMT+1"
         },
         {
           icon: Mail,
           title: "Envoyez-Nous un Email",
-          value: "info@sghayratours.com",
+          value: siteSettings?.contact_details?.email || "info@sghayratours.com",
           description: "Nous répondrons dans les 24 heures"
-        },
-        {
-          icon: MapPin,
-          title: "Visitez-Nous",
-          value: "Douz, Kebili, Tunisie",
-          description: "Porte d'entrée du Sahara"
         },
         {
           icon: Clock,
@@ -154,20 +148,14 @@ export default function Contact({ currentLanguage }: ContactProps) {
         {
           icon: Phone,
           title: "Rufen Sie Uns An",
-          value: "+216 12 345 678",
+          value: siteSettings?.contact_details?.phone || "+216 12 345 678",
           description: "Mo-Fr 9-18 Uhr GMT+1"
         },
         {
           icon: Mail,
           title: "E-Mail Senden",
-          value: "info@sghayratours.com",
+          value: siteSettings?.contact_details?.email || "info@sghayratours.com",
           description: "Wir antworten innerhalb von 24 Stunden"
-        },
-        {
-          icon: MapPin,
-          title: "Besuchen Sie Uns",
-          value: "Douz, Kebili, Tunesien",
-          description: "Tor zur Sahara"
         },
         {
           icon: Clock,
@@ -206,20 +194,14 @@ export default function Contact({ currentLanguage }: ContactProps) {
         {
           icon: Phone,
           title: "اتصل بنا",
-          value: "+216 12 345 678",
+          value: siteSettings?.contact_details?.phone || "+216 12 345 678",
           description: "الإثنين-الجمعة 9ص-6م GMT+1"
         },
         {
           icon: Mail,
           title: "راسلنا",
-          value: "info@sghayratours.com",
+          value: siteSettings?.contact_details?.email || "info@sghayratours.com",
           description: "سنرد خلال 24 ساعة"
-        },
-        {
-          icon: MapPin,
-          title: "زرنا",
-          value: "دوز، قبلي، تونس",
-          description: "بوابة الصحراء"
         },
         {
           icon: Clock,
@@ -319,6 +301,16 @@ export default function Contact({ currentLanguage }: ContactProps) {
                   </CardContent>
                 </Card>
               ))}
+              
+              {/* Location Display */}
+              {siteSettings?.location_info && siteSettings.location_info.isActive && siteSettings.location_info.displayOnContact && (
+                <LocationDisplay
+                  locationInfo={siteSettings.location_info}
+                  language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+                  variant="full"
+                  className="mt-6"
+                />
+              )}
             </div>
           </div>
 

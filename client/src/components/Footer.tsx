@@ -1,6 +1,7 @@
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { LocationDisplay } from "@/components/LocationDisplay";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface FooterProps {
@@ -184,14 +185,16 @@ export default function Footer({ currentLanguage }: FooterProps) {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-foreground">{t.contactInfo}</h4>
             <div className="space-y-3">
-              <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">
-                  {siteSettings?.contact_details?.address 
-                    ? siteSettings.contact_details.address[currentLanguage as keyof typeof siteSettings.contact_details.address] || siteSettings.contact_details.address.en
-                    : t.address}
-                </span>
-              </div>
+              {/* Location Display */}
+              {siteSettings?.location_info && siteSettings.location_info.isActive && siteSettings.location_info.displayOnFooter && (
+                <LocationDisplay
+                  locationInfo={siteSettings.location_info}
+                  language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+                  variant="inline"
+                  showMapButton={false}
+                  className={isRTL ? 'flex-row-reverse space-x-reverse' : ''}
+                />
+              )}
               <div className={`flex items-center space-x-3 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Phone className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">

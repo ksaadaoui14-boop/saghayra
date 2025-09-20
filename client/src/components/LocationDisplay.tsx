@@ -33,8 +33,10 @@ export function LocationDisplay({
 }: LocationDisplayProps) {
   const { address, latitude, longitude, googleMapsUrl, isActive } = locationInfo;
   
-  // Don't render if not active or no address provided
-  if (!isActive || !address[language]) {
+  // Don't render if not active or no address provided (with fallback)
+  const addressToDisplay = address[language] || address.en || Object.values(address).find(addr => addr?.trim()) || '';
+  
+  if (!isActive || !addressToDisplay) {
     return null;
   }
 
@@ -48,38 +50,40 @@ export function LocationDisplay({
     if (googleMapsUrl) {
       // Use custom Google Maps URL if provided
       mapUrl = googleMapsUrl;
-    } else if (latitude && longitude) {
+    } else if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
       if (isIOS) {
-        // Apple Maps for iOS devices
-        mapUrl = `maps:?q=${latitude},${longitude}&ll=${latitude},${longitude}`;
+        // Apple Maps for iOS devices - use universal URL
+        mapUrl = `https://maps.apple.com/?q=${latitude},${longitude}`;
       } else if (isMobile) {
         // Google Maps app for Android
         mapUrl = `geo:${latitude},${longitude}?q=${latitude},${longitude}`;
       } else {
-        // Google Maps web for desktop
-        mapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
+        // Google Maps web for desktop - use universal query format
+        mapUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
       }
     } else {
-      // Fallback to address search
-      const encodedAddress = encodeURIComponent(address[language]);
+      // Fallback to address search with proper address fallback
+      const addressToUse = address[language] || address.en || Object.values(address).find(addr => addr?.trim()) || '';
+      const encodedAddress = encodeURIComponent(addressToUse);
+      
       if (isIOS) {
-        mapUrl = `maps:?q=${encodedAddress}`;
+        mapUrl = `https://maps.apple.com/?q=${encodedAddress}`;
       } else if (isMobile) {
         mapUrl = `geo:0,0?q=${encodedAddress}`;
       } else {
-        mapUrl = `https://maps.google.com/maps?q=${encodedAddress}`;
+        mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
       }
     }
     
-    // Open the map URL
-    window.open(mapUrl, '_blank');
+    // Open the map URL with security measures
+    window.open(mapUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (variant === 'inline') {
     return (
       <div className={cn("flex items-center gap-2 text-sm", className)}>
         <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="text-muted-foreground">{address[language]}</span>
+        <span className="text-muted-foreground">{addressToDisplay}</span>
         {showMapButton && (
           <Button 
             variant="ghost" 
@@ -102,7 +106,7 @@ export function LocationDisplay({
           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="text-sm">
             <p className="text-muted-foreground leading-relaxed">
-              {address[language]}
+              {addressToDisplay}
             </p>
           </div>
         </div>
@@ -133,7 +137,7 @@ export function LocationDisplay({
           </div>
           
           <div className="text-sm text-muted-foreground leading-relaxed">
-            {address[language]}
+            {addressToDisplay}
           </div>
           
           {showMapButton && (
@@ -150,7 +154,7 @@ export function LocationDisplay({
               {googleMapsUrl && (
                 <Button 
                   variant="outline"
-                  onClick={() => window.open(googleMapsUrl, '_blank')}
+                  onClick={() => window.open(googleMapsUrl, '_blank', 'noopener,noreferrer')}
                   className="hover-elevate active-elevate-2"
                   data-testid="button-open-google-maps"
                 >
@@ -161,7 +165,7 @@ export function LocationDisplay({
             </div>
           )}
           
-          {latitude && longitude && (
+          {Number.isFinite(latitude) && Number.isFinite(longitude) && (
             <div className="text-xs text-muted-foreground pt-2 border-t">
               Coordinates: {latitude.toFixed(6)}, {longitude.toFixed(6)}
             </div>

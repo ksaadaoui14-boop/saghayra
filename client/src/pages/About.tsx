@@ -1,6 +1,7 @@
 import { MapPin, Star, Users, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LocationDisplay } from "@/components/LocationDisplay";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface AboutProps {
@@ -273,6 +274,20 @@ export default function About({ currentLanguage }: AboutProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Location Display */}
+        {siteSettings?.location_info && siteSettings.location_info.isActive && (
+          <div className="mt-20 flex justify-center">
+            <div className="max-w-md">
+              <LocationDisplay
+                locationInfo={siteSettings.location_info}
+                language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+                variant="compact"
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
