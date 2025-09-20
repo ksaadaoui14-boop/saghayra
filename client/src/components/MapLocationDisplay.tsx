@@ -14,7 +14,7 @@ export function MapLocationDisplay({
 }: MapLocationDisplayProps) {
   const { data: siteSettings } = useSiteSettings();
   
-  if (!siteSettings?.location_info || !siteSettings.location_info.isActive) {
+  if (!siteSettings?.location_info || siteSettings.location_info.isActive === false) {
     return null;
   }
 
