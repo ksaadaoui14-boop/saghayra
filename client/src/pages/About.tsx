@@ -125,6 +125,10 @@ export default function About({ currentLanguage }: AboutProps) {
   };
 
   const t = translations[currentLanguage as keyof typeof translations] || translations.en;
+  
+  // Check if admin about page content is available and active
+  const aboutContent = siteSettings?.about_page_content;
+  const useAdminContent = aboutContent?.isActive !== false;
 
   const features = [
     {
@@ -162,12 +166,16 @@ export default function About({ currentLanguage }: AboutProps) {
       <div className="bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            {siteSettings?.company_info?.name
+            {useAdminContent && aboutContent?.title
+              ? aboutContent.title[currentLanguage as keyof typeof aboutContent.title] || aboutContent.title.en
+              : siteSettings?.company_info?.name
               ? `About ${siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en}`
               : t.title}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {siteSettings?.company_info?.tagline
+            {useAdminContent && aboutContent?.subtitle
+              ? aboutContent.subtitle[currentLanguage as keyof typeof aboutContent.subtitle] || aboutContent.subtitle.en
+              : siteSettings?.company_info?.tagline
               ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
               : t.subtitle}
           </p>
@@ -178,10 +186,14 @@ export default function About({ currentLanguage }: AboutProps) {
         {/* Who We Are */}
         <div className="mb-20">
           <h2 className="text-3xl font-bold text-foreground mb-6 text-center">
-            {t.whoWeAre}
+            {useAdminContent && aboutContent?.whoWeAre
+              ? aboutContent.whoWeAre[currentLanguage as keyof typeof aboutContent.whoWeAre] || aboutContent.whoWeAre.en
+              : t.whoWeAre}
           </h2>
           <p className="text-lg text-muted-foreground max-w-4xl mx-auto text-center leading-relaxed">
-            {siteSettings?.company_info?.about
+            {useAdminContent && aboutContent?.whoWeAreDesc
+              ? aboutContent.whoWeAreDesc[currentLanguage as keyof typeof aboutContent.whoWeAreDesc] || aboutContent.whoWeAreDesc.en
+              : siteSettings?.company_info?.about
               ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
               : t.whoWeAreDesc}
           </p>
@@ -244,10 +256,14 @@ export default function About({ currentLanguage }: AboutProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-6">
-                {t.ourStory}
+                {useAdminContent && aboutContent?.ourStory
+                  ? aboutContent.ourStory[currentLanguage as keyof typeof aboutContent.ourStory] || aboutContent.ourStory.en
+                  : t.ourStory}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                {t.ourStoryDesc}
+                {useAdminContent && aboutContent?.ourStoryDesc
+                  ? aboutContent.ourStoryDesc[currentLanguage as keyof typeof aboutContent.ourStoryDesc] || aboutContent.ourStoryDesc.en
+                  : t.ourStoryDesc}
               </p>
               <Badge variant="secondary" className="text-sm">
                 Established 2015
@@ -268,10 +284,14 @@ export default function About({ currentLanguage }: AboutProps) {
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold text-foreground mb-4">
-                {t.commitment}
+                {useAdminContent && aboutContent?.commitment
+                  ? aboutContent.commitment[currentLanguage as keyof typeof aboutContent.commitment] || aboutContent.commitment.en
+                  : t.commitment}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-                {t.commitmentDesc}
+                {useAdminContent && aboutContent?.commitmentDesc
+                  ? aboutContent.commitmentDesc[currentLanguage as keyof typeof aboutContent.commitmentDesc] || aboutContent.commitmentDesc.en
+                  : t.commitmentDesc}
               </p>
             </CardContent>
           </Card>
