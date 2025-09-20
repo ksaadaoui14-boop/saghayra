@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -59,6 +59,80 @@ export default function AdminGallery() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [newItemData, setNewItemData] = useState({
+    url: "",
+    type: "image",
+    category: "general",
+    title: { en: "", fr: "", de: "", ar: "" },
+    description: { en: "", fr: "", de: "", ar: "" },
+  });
+
+  // Upload helper functions
+  const handleGetUploadParameters = async () => {
+    const response = await fetch('/api/admin/objects/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+    
+    const data = await response.json();
+    return {
+      method: 'PUT' as const,
+      url: data.uploadURL,
+    };
+  };
+
+  const handleFileUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    try {
+      if (result.successful && result.successful.length > 0) {
+        const uploadedFile = result.successful[0];
+        const fileURL = uploadedFile.uploadURL;
+        
+        // Set ACL policy for the uploaded file
+        const response = await fetch('/api/admin/objects', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileURL: fileURL,
+            visibility: 'public',
+            fileType: uploadedFile.type || 'image'
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to process uploaded file');
+        }
+
+        const data = await response.json();
+        const objectPath = data.objectPath;
+        
+        // Update the URL field and determine type
+        const fileType = uploadedFile.type?.startsWith('video/') ? 'video' : 'image';
+        setNewItemData(prev => ({
+          ...prev,
+          url: objectPath,
+          type: fileType
+        }));
+        
+        toast({
+          title: "File Uploaded",
+          description: "Gallery file uploaded successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing upload:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to process uploaded file",
+        variant: "destructive",
+      });
+    }
+  };
 
   // API helper with auth - using httpOnly cookies
   const authenticatedApiRequest = async (method: string, endpoint: string, body?: any) => {
@@ -235,6 +309,10 @@ export default function AdminGallery() {
               <UploadForm 
                 onSubmit={createGalleryItemMutation.mutate}
                 isLoading={createGalleryItemMutation.isPending}
+                newItemData={newItemData}
+                setNewItemData={setNewItemData}
+                handleGetUploadParameters={handleGetUploadParameters}
+                handleFileUploadComplete={handleFileUploadComplete}
               />
             </DialogContent>
           </Dialog>
@@ -402,16 +480,39 @@ export default function AdminGallery() {
 }
 
 // Upload Form Component
-function UploadForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; isLoading: boolean }) {
+function UploadForm({ 
+  onSubmit, 
+  isLoading, 
+  newItemData, 
+  setNewItemData, 
+  handleGetUploadParameters, 
+  handleFileUploadComplete 
+}: { 
+  onSubmit: (data: any) => void; 
+  isLoading: boolean;
+  newItemData: any;
+  setNewItemData: (data: any) => void;
+  handleGetUploadParameters: () => Promise<any>;
+  handleFileUploadComplete: (result: any) => Promise<void>;
+}) {
   const [formData, setFormData] = useState({
-    type: 'image',
-    url: '',
+    type: newItemData.type || 'image',
+    url: newItemData.url || '',
     thumbnailUrl: '',
-    category: '',
-    title: { en: '', fr: '', de: '', ar: '' },
-    description: { en: '', fr: '', de: '', ar: '' },
+    category: newItemData.category || '',
+    title: newItemData.title || { en: '', fr: '', de: '', ar: '' },
+    description: newItemData.description || { en: '', fr: '', de: '', ar: '' },
     sortOrder: 0
   });
+
+  // Update form data when newItemData changes (from upload)
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      url: newItemData.url || prev.url,
+      type: newItemData.type || prev.type,
+    }));
+  }, [newItemData.url, newItemData.type]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,20 +549,40 @@ function UploadForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; is
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="url">File URL *</Label>
+      <div className="space-y-2">
+        <Label htmlFor="url">Gallery File</Label>
         <Input
           id="url"
           value={formData.url}
           onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-          placeholder="https://your-object-storage-url/image.jpg"
+          placeholder="File URL or upload below"
           required
         />
+        <ObjectUploader
+          maxNumberOfFiles={1}
+          maxFileSize={formData.type === 'video' ? 104857600 : 10485760} // 100MB for videos, 10MB for images
+          allowedFileTypes={formData.type === 'video' 
+            ? ['.mp4', '.webm', '.mov'] 
+            : ['.jpg', '.jpeg', '.png', '.webp']
+          }
+          onGetUploadParameters={handleGetUploadParameters}
+          onComplete={handleFileUploadComplete}
+          buttonClassName="w-full"
+          data-testid="button-upload-gallery-file"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload {formData.type === 'video' ? 'Video' : 'Image'}
+        </ObjectUploader>
+        {formData.url && (
+          <div className="text-sm text-muted-foreground">
+            Current: {formData.url}
+          </div>
+        )}
       </div>
 
       {formData.type === 'video' && (
         <div>
-          <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
+          <Label htmlFor="thumbnailUrl">Thumbnail URL (Optional)</Label>
           <Input
             id="thumbnailUrl"
             value={formData.thumbnailUrl}
@@ -482,6 +603,7 @@ function UploadForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; is
               title: { ...prev.title, [lang.code]: e.target.value }
             }))}
             required
+            data-testid={`input-title-${lang.code}`}
           />
         </div>
       ))}
@@ -497,12 +619,13 @@ function UploadForm({ onSubmit, isLoading }: { onSubmit: (data: any) => void; is
               description: { ...prev.description, [lang.code]: e.target.value }
             }))}
             rows={3}
+            data-testid={`textarea-description-${lang.code}`}
           />
         </div>
       ))}
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} data-testid="button-create-gallery-item">
           {isLoading ? "Creating..." : "Create Gallery Item"}
         </Button>
       </div>
