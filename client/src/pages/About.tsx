@@ -253,10 +253,12 @@ export default function About({ currentLanguage }: AboutProps) {
                 Established 2015
               </Badge>
             </div>
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-8">
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <MapPin className="h-16 w-16 text-primary" />
-              </div>
+            <div className="rounded-lg overflow-hidden">
+              <MapLocationDisplay
+                language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+                height="350px"
+                className="shadow-lg"
+              />
             </div>
           </div>
         </div>
