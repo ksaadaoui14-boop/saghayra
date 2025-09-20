@@ -254,12 +254,39 @@ export const locationInfoSchema = z.object({
   displayOnContact: z.boolean().default(true),
 });
 
+export const aboutPageContentSchema = z.object({
+  title: multilingualTextSchema,
+  subtitle: multilingualTextSchema,
+  whoWeAre: multilingualTextSchema,
+  whoWeAreDesc: multilingualTextSchema,
+  ourMission: multilingualTextSchema,
+  ourMissionDesc: multilingualTextSchema,
+  whyChooseUs: multilingualTextSchema,
+  experience: multilingualTextSchema,
+  experienceDesc: multilingualTextSchema,
+  localGuides: multilingualTextSchema,
+  localGuidesDesc: multilingualTextSchema,
+  safety: multilingualTextSchema,
+  safetyDesc: multilingualTextSchema,
+  authentic: multilingualTextSchema,
+  authenticDesc: multilingualTextSchema,
+  toursCompleted: multilingualTextSchema,
+  happyCustomers: multilingualTextSchema,
+  countries: multilingualTextSchema,
+  rating: multilingualTextSchema,
+  ourStory: multilingualTextSchema,
+  ourStoryDesc: multilingualTextSchema,
+  commitment: multilingualTextSchema,
+  commitmentDesc: multilingualTextSchema,
+});
+
 export const siteSettingValueSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("company_info"), ...companyInfoSchema.shape }),
   z.object({ type: z.literal("contact_details"), ...contactInfoSchema.shape }),
   z.object({ type: z.literal("social_media"), ...socialMediaSchema.shape }),
   z.object({ type: z.literal("booking_info"), ...bookingInfoSchema.shape }),
   z.object({ type: z.literal("location_info"), ...locationInfoSchema.shape }),
+  z.object({ type: z.literal("about_page_content"), ...aboutPageContentSchema.shape }),
 ]);
 
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).pick({
