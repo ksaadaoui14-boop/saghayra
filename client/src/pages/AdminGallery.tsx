@@ -299,14 +299,14 @@ export default function AdminGallery() {
                 Add Item
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh]">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Add Gallery Item</DialogTitle>
                 <DialogDescription>
-                  Add a new image or video to the gallery. Upload your files and fill in the details below.
+                  Upload your files and add details below.
                 </DialogDescription>
               </DialogHeader>
-              <div className="overflow-auto flex-1">
+              <div className="overflow-auto flex-1 pr-2">
                 <UploadForm 
                   onSubmit={createGalleryItemMutation.mutate}
                   isLoading={createGalleryItemMutation.isPending}
@@ -461,14 +461,14 @@ export default function AdminGallery() {
       {/* Edit Dialog */}
       {editingItem && (
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Edit Gallery Item</DialogTitle>
               <DialogDescription>
                 Update the gallery item details.
               </DialogDescription>
             </DialogHeader>
-            <div className="overflow-auto flex-1">
+            <div className="overflow-auto flex-1 pr-2">
               <EditForm 
                 item={editingItem}
                 onSubmit={(data) => updateGalleryItemMutation.mutate({ id: editingItem.id, data })}
@@ -526,12 +526,12 @@ function UploadForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="type">Type</Label>
+          <Label htmlFor="type" className="text-sm">Type</Label>
           <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
-            <SelectTrigger>
+            <SelectTrigger className="h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -541,9 +541,9 @@ function UploadForm({
           </Select>
         </div>
         <div>
-          <Label htmlFor="category">Category</Label>
+          <Label htmlFor="category" className="text-sm">Category</Label>
           <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-            <SelectTrigger>
+            <SelectTrigger className="h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -556,13 +556,14 @@ function UploadForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="url">Gallery File</Label>
+        <Label htmlFor="url" className="text-sm">Gallery File</Label>
         <Input
           id="url"
           value={formData.url}
           onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
           placeholder="File URL or upload below"
           required
+          className="h-8"
         />
         <ObjectUploader
           maxNumberOfFiles={1}
@@ -573,14 +574,14 @@ function UploadForm({
           }
           onGetUploadParameters={handleGetUploadParameters}
           onComplete={handleFileUploadComplete}
-          buttonClassName="w-full"
+          buttonClassName="w-full h-8"
           data-testid="button-upload-gallery-file"
         >
-          <Upload className="h-4 w-4 mr-2" />
+          <Upload className="h-3 w-3 mr-2" />
           Upload {formData.type === 'video' ? 'Video' : 'Image'}
         </ObjectUploader>
         {formData.url && (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs text-muted-foreground truncate">
             Current: {formData.url}
           </div>
         )}
@@ -588,50 +589,59 @@ function UploadForm({
 
       {formData.type === 'video' && (
         <div>
-          <Label htmlFor="thumbnailUrl">Thumbnail URL (Optional)</Label>
+          <Label htmlFor="thumbnailUrl" className="text-sm">Thumbnail URL (Optional)</Label>
           <Input
             id="thumbnailUrl"
             value={formData.thumbnailUrl}
             onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
             placeholder="https://your-object-storage-url/thumbnail.jpg"
+            className="h-8"
           />
         </div>
       )}
 
-      {languages.map(lang => (
-        <div key={lang.code}>
-          <Label htmlFor={`title-${lang.code}`}>Title ({lang.name}) *</Label>
-          <Input
-            id={`title-${lang.code}`}
-            value={formData.title[lang.code as keyof typeof formData.title]}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              title: { ...prev.title, [lang.code]: e.target.value }
-            }))}
-            required
-            data-testid={`input-title-${lang.code}`}
-          />
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          {languages.map(lang => (
+            <div key={lang.code}>
+              <Label htmlFor={`title-${lang.code}`} className="text-sm">Title ({lang.name}) *</Label>
+              <Input
+                id={`title-${lang.code}`}
+                value={formData.title[lang.code as keyof typeof formData.title]}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  title: { ...prev.title, [lang.code]: e.target.value }
+                }))}
+                required
+                data-testid={`input-title-${lang.code}`}
+                className="h-8"
+              />
+            </div>
+          ))}
         </div>
-      ))}
 
-      {languages.map(lang => (
-        <div key={lang.code}>
-          <Label htmlFor={`desc-${lang.code}`}>Description ({lang.name})</Label>
-          <Textarea
-            id={`desc-${lang.code}`}
-            value={formData.description[lang.code as keyof typeof formData.description]}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              description: { ...prev.description, [lang.code]: e.target.value }
-            }))}
-            rows={3}
-            data-testid={`textarea-description-${lang.code}`}
-          />
+        <div className="grid grid-cols-2 gap-3">
+          {languages.map(lang => (
+            <div key={lang.code}>
+              <Label htmlFor={`desc-${lang.code}`} className="text-sm">Description ({lang.name})</Label>
+              <Textarea
+                id={`desc-${lang.code}`}
+                value={formData.description[lang.code as keyof typeof formData.description]}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  description: { ...prev.description, [lang.code]: e.target.value }
+                }))}
+                rows={2}
+                data-testid={`textarea-description-${lang.code}`}
+                className="text-sm"
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={isLoading} data-testid="button-create-gallery-item">
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button type="submit" disabled={isLoading} data-testid="button-create-gallery-item" className="h-8">
           {isLoading ? "Creating..." : "Create Gallery Item"}
         </Button>
       </div>
