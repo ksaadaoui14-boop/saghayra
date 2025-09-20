@@ -33,6 +33,15 @@ export interface SiteSettings {
     isBookingEnabled: boolean;
     isActive: boolean;
   };
+  location_info?: {
+    address: { en: string; fr: string; de: string; ar: string };
+    latitude: number;
+    longitude: number;
+    googleMapsUrl?: string;
+    displayOnFooter: boolean;
+    displayOnContact: boolean;
+    isActive: boolean;
+  };
 }
 
 export const useSiteSettings = () => {

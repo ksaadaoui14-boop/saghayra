@@ -1,7 +1,7 @@
 import { MapPin, Star, Users, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LocationDisplay } from "@/components/LocationDisplay";
+import { MapLocationDisplay } from "@/components/MapLocationDisplay";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface AboutProps {
@@ -275,19 +275,31 @@ export default function About({ currentLanguage }: AboutProps) {
           </Card>
         </div>
 
-        {/* Location Display */}
-        {siteSettings?.location_info && siteSettings.location_info.isActive && (
-          <div className="mt-20 flex justify-center">
-            <div className="max-w-md">
-              <LocationDisplay
-                locationInfo={siteSettings.location_info}
-                language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
-                variant="compact"
-                className="w-full"
-              />
-            </div>
+        {/* Location Section */}
+        <div className="mt-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-foreground mb-4">
+              {currentLanguage === 'en' ? 'Visit Us' : 
+               currentLanguage === 'fr' ? 'Nous Rendre Visite' :
+               currentLanguage === 'de' ? 'Besuchen Sie Uns' :
+               'زورونا'}
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {currentLanguage === 'en' ? 'Experience authentic desert hospitality at our location' : 
+               currentLanguage === 'fr' ? 'Découvrez l\'hospitalité authentique du désert à notre emplacement' :
+               currentLanguage === 'de' ? 'Erleben Sie authentische Wüstengastfreundschaft an unserem Standort' :
+               'اختبروا الضيافة الصحراوية الأصيلة في موقعنا'}
+            </p>
           </div>
-        )}
+          
+          <div className="max-w-4xl mx-auto">
+            <MapLocationDisplay
+              language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+              height="500px"
+              className="shadow-lg"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

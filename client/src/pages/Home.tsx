@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import Hero from "@/components/Hero";
 import ActivityCard from "@/components/ActivityCard";
 import Gallery from "@/components/Gallery";
+import { MapLocationDisplay } from "@/components/MapLocationDisplay";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Star, Users, Award, MapPin } from "lucide-react";
 import camelImage from "@assets/generated_images/Camel_riding_tour_detail_e5164afc.png";
@@ -256,6 +257,34 @@ export default function Home({ currentLanguage, currentCurrency }: HomeProps) {
 
       {/* Gallery Section */}
       <Gallery items={mockGalleryItems} currentLanguage={currentLanguage} />
+
+      {/* Location Section */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-foreground mb-4">
+              {currentLanguage === 'en' ? 'Find Us' : 
+               currentLanguage === 'fr' ? 'Nous Trouver' :
+               currentLanguage === 'de' ? 'Finden Sie Uns' :
+               'موقعنا'}
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {currentLanguage === 'en' ? 'Visit us at our location in the heart of the Sahara Desert gateway' : 
+               currentLanguage === 'fr' ? 'Visitez-nous à notre emplacement au cœur de la porte d\'entrée du désert du Sahara' :
+               currentLanguage === 'de' ? 'Besuchen Sie uns an unserem Standort im Herzen des Sahara-Wüsten-Tors' :
+               'زورونا في موقعنا في قلب بوابة الصحراء الكبرى'}
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <MapLocationDisplay
+              language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
+              height="500px"
+              className="shadow-lg"
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
