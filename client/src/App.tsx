@@ -22,6 +22,7 @@ import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import BookingDetails from "@/pages/BookingDetails";
 import NotFound from "@/pages/not-found";
+import Chatbot from './components/Chatbot';
 
 function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurrentCurrency }: { 
   currentLanguage: string; 
@@ -164,17 +165,20 @@ function App() {
   const [currentCurrency, setCurrentCurrency] = useState("USD");
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router 
-          currentLanguage={currentLanguage} 
-          currentCurrency={currentCurrency}
-          setCurrentLanguage={setCurrentLanguage}
-          setCurrentCurrency={setCurrentCurrency}
-        />
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Router 
+            currentLanguage={currentLanguage} 
+            currentCurrency={currentCurrency}
+            setCurrentLanguage={setCurrentLanguage}
+            setCurrentCurrency={setCurrentCurrency}
+          />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+      <Chatbot />
+    </>
   );
 }
 
