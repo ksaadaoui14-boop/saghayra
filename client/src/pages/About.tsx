@@ -11,153 +11,87 @@ interface AboutProps {
 export default function About({ currentLanguage }: AboutProps) {
   const { data: settings } = useSiteSettings();
   
-  // Type assertion to help TypeScript understand the data structure
-  const siteSettings = settings as any;
-  const translations = {
-    en: {
-      title: "About Sghayra Tours",
-      subtitle: "Your Gateway to the Sahara Desert",
-      whoWeAre: "Who We Are",
-      whoWeAreDesc: "Sghayra Tours is a premier tour operator specializing in authentic Sahara Desert experiences. Based in Tunisia, we have been guiding adventurers through the magnificent landscapes of the Sahara since 2015.",
-      ourMission: "Our Mission",
-      ourMissionDesc: "To provide unforgettable desert experiences while respecting local traditions and preserving the natural beauty of the Sahara for future generations.",
-      whyChooseUs: "Why Choose Sghayra Tours",
-      experience: "Years of Experience",
-      experienceDesc: "Over 8 years of expertise in desert tourism",
-      localGuides: "Local Expert Guides",
-      localGuidesDesc: "Native guides with deep knowledge of the desert",
-      safety: "Safety First",
-      safetyDesc: "All tours follow strict safety protocols",
-      authentic: "Authentic Experiences",
-      authenticDesc: "Real desert life with local communities",
-      stats: {
-        toursCompleted: "1,200+ Tours Completed",
-        happyCustomers: "3,500+ Happy Customers",
-        countries: "45+ Countries Served",
-        rating: "4.9/5 Average Rating"
-      },
-      ourStory: "Our Story",
-      ourStoryDesc: "Founded by local desert guides with a passion for sharing the magic of the Sahara, Sghayra Tours began as a small family business. Today, we pride ourselves on offering personalized experiences that showcase the true essence of desert life.",
-      commitment: "Our Commitment",
-      commitmentDesc: "We are committed to sustainable tourism practices that benefit local communities while providing our guests with authentic, life-changing experiences in one of the world's most spectacular landscapes."
-    },
-    fr: {
-      title: "À Propos de Sghayra Tours",
-      subtitle: "Votre Porte d'Entrée vers le Désert du Sahara",
-      whoWeAre: "Qui Nous Sommes",
-      whoWeAreDesc: "Sghayra Tours est un tour-opérateur de premier plan spécialisé dans les expériences authentiques du désert du Sahara. Basés en Tunisie, nous guidons les aventuriers à travers les magnifiques paysages du Sahara depuis 2015.",
-      ourMission: "Notre Mission",
-      ourMissionDesc: "Fournir des expériences inoubliables dans le désert tout en respectant les traditions locales et en préservant la beauté naturelle du Sahara pour les générations futures.",
-      whyChooseUs: "Pourquoi Choisir Sghayra Tours",
-      experience: "Années d'Expérience",
-      experienceDesc: "Plus de 8 ans d'expertise en tourisme désertique",
-      localGuides: "Guides Experts Locaux",
-      localGuidesDesc: "Guides natifs avec une connaissance approfondie du désert",
-      safety: "Sécurité Avant Tout",
-      safetyDesc: "Tous les tours suivent des protocoles de sécurité stricts",
-      authentic: "Expériences Authentiques",
-      authenticDesc: "Vraie vie du désert avec les communautés locales",
-      stats: {
-        toursCompleted: "1 200+ Tours Réalisés",
-        happyCustomers: "3 500+ Clients Satisfaits",
-        countries: "45+ Pays Servis",
-        rating: "4,9/5 Note Moyenne"
-      },
-      ourStory: "Notre Histoire",
-      ourStoryDesc: "Fondée par des guides locaux du désert passionnés par le partage de la magie du Sahara, Sghayra Tours a commencé comme une petite entreprise familiale. Aujourd'hui, nous sommes fiers d'offrir des expériences personnalisées qui mettent en valeur la véritable essence de la vie du désert.",
-      commitment: "Notre Engagement",
-      commitmentDesc: "Nous nous engageons à des pratiques de tourisme durable qui profitent aux communautés locales tout en offrant à nos invités des expériences authentiques et transformatrices dans l'un des paysages les plus spectaculaires au monde."
-    },
-    de: {
-      title: "Über Sghayra Tours",
-      subtitle: "Ihr Tor zur Sahara-Wüste",
-      whoWeAre: "Wer Wir Sind",
-      whoWeAreDesc: "Sghayra Tours ist ein führender Reiseveranstalter, der sich auf authentische Sahara-Wüstenerlebnisse spezialisiert hat. Mit Sitz in Tunesien führen wir seit 2015 Abenteurer durch die herrlichen Landschaften der Sahara.",
-      ourMission: "Unsere Mission",
-      ourMissionDesc: "Unvergessliche Wüstenerlebnisse zu bieten, während wir lokale Traditionen respektieren und die natürliche Schönheit der Sahara für zukünftige Generationen bewahren.",
-      whyChooseUs: "Warum Sghayra Tours Wählen",
-      experience: "Jahre der Erfahrung",
-      experienceDesc: "Über 8 Jahre Expertise im Wüstentourismus",
-      localGuides: "Lokale Expertenführer",
-      localGuidesDesc: "Einheimische Führer mit tiefem Wüstenwissen",
-      safety: "Sicherheit Zuerst",
-      safetyDesc: "Alle Touren folgen strengen Sicherheitsprotokollen",
-      authentic: "Authentische Erlebnisse",
-      authenticDesc: "Echtes Wüstenleben mit lokalen Gemeinschaften",
-      stats: {
-        toursCompleted: "1.200+ Touren Durchgeführt",
-        happyCustomers: "3.500+ Zufriedene Kunden",
-        countries: "45+ Länder Bedient",
-        rating: "4,9/5 Durchschnittsbewertung"
-      },
-      ourStory: "Unsere Geschichte",
-      ourStoryDesc: "Gegründet von lokalen Wüstenführern mit einer Leidenschaft für das Teilen der Magie der Sahara, begann Sghayra Tours als kleines Familienunternehmen. Heute sind wir stolz darauf, personalisierte Erlebnisse anzubieten, die die wahre Essenz des Wüstenlebens zeigen.",
-      commitment: "Unser Engagement",
-      commitmentDesc: "Wir verpflichten uns zu nachhaltigen Tourismuspraktiken, die lokalen Gemeinschaften zugutekommen, während wir unseren Gästen authentische, lebensverändernde Erlebnisse in einer der spektakulärsten Landschaften der Welt bieten."
-    },
-    ar: {
-      title: "حول سغايرة تورز",
-      subtitle: "بوابتك إلى الصحراء الكبرى",
-      whoWeAre: "من نحن",
-      whoWeAreDesc: "سغايرة تورز هي شركة سياحة رائدة متخصصة في تجارب الصحراء الكبرى الأصيلة. مقرها في تونس، نقوم بإرشاد المغامرين عبر المناظر الطبيعية الرائعة للصحراء منذ عام 2015.",
-      ourMission: "مهمتنا",
-      ourMissionDesc: "تقديم تجارب صحراوية لا تُنسى مع احترام التقاليد المحلية والحفاظ على الجمال الطبيعي للصحراء للأجيال القادمة.",
-      whyChooseUs: "لماذا تختار سغايرة تورز",
-      experience: "سنوات من الخبرة",
-      experienceDesc: "أكثر من 8 سنوات من الخبرة في السياحة الصحراوية",
-      localGuides: "مرشدون محليون خبراء",
-      localGuidesDesc: "مرشدون محليون بمعرفة عميقة بالصحراء",
-      safety: "الأمان أولاً",
-      safetyDesc: "جميع الجولات تتبع بروتوكولات أمان صارمة",
-      authentic: "تجارب أصيلة",
-      authenticDesc: "حياة صحراوية حقيقية مع المجتمعات المحلية",
-      stats: {
-        toursCompleted: "1200+ جولة مكتملة",
-        happyCustomers: "3500+ عميل سعيد",
-        countries: "45+ دولة خدمناها",
-        rating: "4.9/5 متوسط التقييم"
-      },
-      ourStory: "قصتنا",
-      ourStoryDesc: "تأسست من قبل مرشدين صحراويين محليين لديهم شغف لمشاركة سحر الصحراء، بدأت سغايرة تورز كشركة عائلية صغيرة. اليوم، نفتخر بتقديم تجارب شخصية تُظهر الجوهر الحقيقي لحياة الصحراء.",
-      commitment: "التزامنا",
-      commitmentDesc: "نحن ملتزمون بممارسات السياحة المستدامة التي تفيد المجتمعات المحلية بينما نوفر لضيوفنا تجارب أصيلة تغير الحياة في واحدة من أروع المناظر الطبيعية في العالم."
+  // Function to get multilingual content with fallbacks
+  const getContent = (field: string, fallback: string = '') => {
+    // First try to get content from about_page_content settings
+    const aboutPageContent = settings?.about_page_content;
+    if (aboutPageContent && aboutPageContent.isActive) {
+      const fieldValue = (aboutPageContent as any)[field];
+      if (fieldValue && typeof fieldValue === 'object') {
+        return fieldValue[currentLanguage] || fieldValue.en || fallback;
+      }
     }
+    
+    // Fall back to company info for some fields like name
+    const companyInfo = settings?.company_info;
+    if (companyInfo && companyInfo.isActive && (field === 'name' || field === 'tagline' || field === 'about')) {
+      const fieldValue = (companyInfo as any)[field];
+      if (fieldValue && typeof fieldValue === 'object') {
+        return fieldValue[currentLanguage] || fieldValue.en || fallback;
+      }
+    }
+    
+    // Final fallback to provided fallback text
+    return fallback;
   };
 
-  const t = translations[currentLanguage as keyof typeof translations] || translations.en;
-  
-  // Check if admin about page content is available and active
-  const aboutContent = siteSettings?.about_page_content;
-  const useAdminContent = aboutContent?.isActive !== false;
+  // Default fallback translations (minimal set)
+  const defaults = {
+    title: "About Sghayra Tours",
+    subtitle: "Your Gateway to the Sahara Desert", 
+    whoWeAre: "Who We Are",
+    whoWeAreDesc: "We specialize in authentic Sahara Desert experiences.",
+    ourMission: "Our Mission",
+    ourMissionDesc: "To provide unforgettable desert experiences while respecting local traditions.",
+    whyChooseUs: "Why Choose Sghayra Tours",
+    experience: "Years of Experience",
+    experienceDesc: "Expertise in desert tourism",
+    localGuides: "Local Expert Guides", 
+    localGuidesDesc: "Native guides with deep desert knowledge",
+    safety: "Safety First",
+    safetyDesc: "All tours follow strict safety protocols",
+    authentic: "Authentic Experiences",
+    authenticDesc: "Real desert life with local communities",
+    stats: {
+      toursCompleted: "1,200+ Tours Completed",
+      happyCustomers: "3,500+ Happy Customers", 
+      countries: "45+ Countries Served",
+      rating: "4.9/5 Average Rating"
+    },
+    ourStory: "Our Story",
+    ourStoryDesc: "Founded by local desert guides with a passion for sharing the magic of the Sahara.",
+    commitment: "Our Commitment", 
+    commitmentDesc: "We are committed to sustainable tourism practices that benefit local communities."
+  };
 
   const features = [
     {
       icon: Calendar,
-      title: t.experience,
-      description: t.experienceDesc
+      title: getContent('experience', defaults.experience),
+      description: getContent('experienceDesc', defaults.experienceDesc)
     },
     {
       icon: Users,
-      title: t.localGuides,
-      description: t.localGuidesDesc
+      title: getContent('localGuides', defaults.localGuides),
+      description: getContent('localGuidesDesc', defaults.localGuidesDesc)
     },
     {
       icon: Star,
-      title: t.safety,
-      description: t.safetyDesc
+      title: getContent('safety', defaults.safety),
+      description: getContent('safetyDesc', defaults.safetyDesc)
     },
     {
       icon: MapPin,
-      title: t.authentic,
-      description: t.authenticDesc
+      title: getContent('authentic', defaults.authentic),
+      description: getContent('authenticDesc', defaults.authenticDesc)
     }
   ];
 
   const stats = [
-    { number: "1,200+", label: t.stats.toursCompleted },
-    { number: "3,500+", label: t.stats.happyCustomers },
-    { number: "45+", label: t.stats.countries },
-    { number: "4.9/5", label: t.stats.rating }
+    { number: "1,200+", label: getContent('toursCompleted', defaults.stats.toursCompleted) },
+    { number: "3,500+", label: getContent('happyCustomers', defaults.stats.happyCustomers) },
+    { number: "45+", label: getContent('countries', defaults.stats.countries) },
+    { number: "4.9/5", label: getContent('rating', defaults.stats.rating) }
   ];
 
   return (
@@ -166,18 +100,10 @@ export default function About({ currentLanguage }: AboutProps) {
       <div className="bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            {useAdminContent && aboutContent?.title
-              ? aboutContent.title[currentLanguage as keyof typeof aboutContent.title] || aboutContent.title.en
-              : siteSettings?.company_info?.name
-              ? `About ${siteSettings.company_info.name[currentLanguage as keyof typeof siteSettings.company_info.name] || siteSettings.company_info.name.en}`
-              : t.title}
+            {getContent('title', defaults.title)}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {useAdminContent && aboutContent?.subtitle
-              ? aboutContent.subtitle[currentLanguage as keyof typeof aboutContent.subtitle] || aboutContent.subtitle.en
-              : siteSettings?.company_info?.tagline
-              ? siteSettings.company_info.tagline[currentLanguage as keyof typeof siteSettings.company_info.tagline] || siteSettings.company_info.tagline.en
-              : t.subtitle}
+            {getContent('subtitle', defaults.subtitle)}
           </p>
         </div>
       </div>
@@ -256,14 +182,10 @@ export default function About({ currentLanguage }: AboutProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-6">
-                {useAdminContent && aboutContent?.ourStory
-                  ? aboutContent.ourStory[currentLanguage as keyof typeof aboutContent.ourStory] || aboutContent.ourStory.en
-                  : t.ourStory}
+                {getContent('ourStory', defaults.ourStory)}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                {useAdminContent && aboutContent?.ourStoryDesc
-                  ? aboutContent.ourStoryDesc[currentLanguage as keyof typeof aboutContent.ourStoryDesc] || aboutContent.ourStoryDesc.en
-                  : t.ourStoryDesc}
+                {getContent('ourStoryDesc', defaults.ourStoryDesc)}
               </p>
               <Badge variant="secondary" className="text-sm">
                 Established 2015
@@ -284,14 +206,10 @@ export default function About({ currentLanguage }: AboutProps) {
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold text-foreground mb-4">
-                {useAdminContent && aboutContent?.commitment
-                  ? aboutContent.commitment[currentLanguage as keyof typeof aboutContent.commitment] || aboutContent.commitment.en
-                  : t.commitment}
+                {getContent('commitment', defaults.commitment)}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-                {useAdminContent && aboutContent?.commitmentDesc
-                  ? aboutContent.commitmentDesc[currentLanguage as keyof typeof aboutContent.commitmentDesc] || aboutContent.commitmentDesc.en
-                  : t.commitmentDesc}
+                {getContent('commitmentDesc', defaults.commitmentDesc)}
               </p>
             </CardContent>
           </Card>
