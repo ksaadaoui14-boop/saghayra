@@ -141,6 +141,14 @@ const multilingualTextSchema = z.object({
   ar: z.string().min(1),
 });
 
+// Flexible multilingual schema for about page content (only English required)
+const aboutPageMultilingualTextSchema = z.object({
+  en: z.string().min(1),
+  fr: z.string().optional(),
+  de: z.string().optional(),
+  ar: z.string().optional(),
+});
+
 const multilingualArraySchema = z.object({
   en: z.array(z.string()).min(1),
   fr: z.array(z.string()).min(1),
@@ -255,29 +263,29 @@ export const locationInfoSchema = z.object({
 });
 
 export const aboutPageContentSchema = z.object({
-  title: multilingualTextSchema,
-  subtitle: multilingualTextSchema,
-  whoWeAre: multilingualTextSchema,
-  whoWeAreDesc: multilingualTextSchema,
-  ourMission: multilingualTextSchema,
-  ourMissionDesc: multilingualTextSchema,
-  whyChooseUs: multilingualTextSchema,
-  experience: multilingualTextSchema,
-  experienceDesc: multilingualTextSchema,
-  localGuides: multilingualTextSchema,
-  localGuidesDesc: multilingualTextSchema,
-  safety: multilingualTextSchema,
-  safetyDesc: multilingualTextSchema,
-  authentic: multilingualTextSchema,
-  authenticDesc: multilingualTextSchema,
-  toursCompleted: multilingualTextSchema,
-  happyCustomers: multilingualTextSchema,
-  countries: multilingualTextSchema,
-  rating: multilingualTextSchema,
-  ourStory: multilingualTextSchema,
-  ourStoryDesc: multilingualTextSchema,
-  commitment: multilingualTextSchema,
-  commitmentDesc: multilingualTextSchema,
+  title: aboutPageMultilingualTextSchema,
+  subtitle: aboutPageMultilingualTextSchema,
+  whoWeAre: aboutPageMultilingualTextSchema,
+  whoWeAreDesc: aboutPageMultilingualTextSchema,
+  ourMission: aboutPageMultilingualTextSchema,
+  ourMissionDesc: aboutPageMultilingualTextSchema,
+  whyChooseUs: aboutPageMultilingualTextSchema,
+  experience: aboutPageMultilingualTextSchema,
+  experienceDesc: aboutPageMultilingualTextSchema,
+  localGuides: aboutPageMultilingualTextSchema,
+  localGuidesDesc: aboutPageMultilingualTextSchema,
+  safety: aboutPageMultilingualTextSchema,
+  safetyDesc: aboutPageMultilingualTextSchema,
+  authentic: aboutPageMultilingualTextSchema,
+  authenticDesc: aboutPageMultilingualTextSchema,
+  toursCompleted: aboutPageMultilingualTextSchema,
+  happyCustomers: aboutPageMultilingualTextSchema,
+  countries: aboutPageMultilingualTextSchema,
+  rating: aboutPageMultilingualTextSchema,
+  ourStory: aboutPageMultilingualTextSchema,
+  ourStoryDesc: aboutPageMultilingualTextSchema,
+  commitment: aboutPageMultilingualTextSchema,
+  commitmentDesc: aboutPageMultilingualTextSchema,
 });
 
 export const siteSettingValueSchema = z.discriminatedUnion("type", [

@@ -378,6 +378,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { key } = req.params;
       const { value, isActive } = req.body;
       
+      console.log(`PUT /api/admin/settings/${key} - Request body:`, JSON.stringify(req.body, null, 2));
+      console.log(`PUT /api/admin/settings/${key} - value:`, value, typeof value, !value);
+      
       if (!value) {
         return res.status(400).json({ error: "Setting value is required" });
       }
