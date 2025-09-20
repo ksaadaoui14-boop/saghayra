@@ -133,7 +133,7 @@ export default function Footer({ currentLanguage }: FooterProps) {
     { name: t.links.gallery, href: "/gallery" },
     { name: t.links.about, href: "/about" },
     { name: t.links.contact, href: "/contact" },
-    { name: t.links.admin, href: "/admin" },
+   { name: t.links.admin, href: "/admin/dashboard" },
   ];
 
   return (

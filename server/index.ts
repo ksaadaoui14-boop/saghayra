@@ -1,6 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
+
+console.log("Loaded DATABASE_URL:", process.env.DATABASE_URL);
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
 
 const app = express();
 app.use(express.json());
@@ -61,11 +66,13 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
+server.listen(
+  {
     port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+    host: "0.0.0.0", // or "127.0.0.1" if you want local only
+  },
+  () => {
     log(`serving on port ${port}`);
-  });
+  }
+);
 })();

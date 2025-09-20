@@ -10,10 +10,9 @@ interface AboutProps {
 
 export default function About({ currentLanguage }: AboutProps) {
   const { data: settings } = useSiteSettings();
-  
+
   // Function to get multilingual content with fallbacks
   const getContent = (field: string, fallback: string = '') => {
-    // First try to get content from about_page_content settings
     const aboutPageContent = settings?.about_page_content;
     if (aboutPageContent && aboutPageContent.isActive) {
       const fieldValue = (aboutPageContent as any)[field];
@@ -21,8 +20,7 @@ export default function About({ currentLanguage }: AboutProps) {
         return fieldValue[currentLanguage] || fieldValue.en || fallback;
       }
     }
-    
-    // Fall back to company info for some fields like name
+
     const companyInfo = settings?.company_info;
     if (companyInfo && companyInfo.isActive && (field === 'name' || field === 'tagline' || field === 'about')) {
       const fieldValue = (companyInfo as any)[field];
@@ -30,15 +28,13 @@ export default function About({ currentLanguage }: AboutProps) {
         return fieldValue[currentLanguage] || fieldValue.en || fallback;
       }
     }
-    
-    // Final fallback to provided fallback text
+
     return fallback;
   };
 
-  // Default fallback translations (minimal set)
   const defaults = {
     title: "About Sghayra Tours",
-    subtitle: "Your Gateway to the Sahara Desert", 
+    subtitle: "Your Gateway to the Sahara Desert",
     whoWeAre: "Who We Are",
     whoWeAreDesc: "We specialize in authentic Sahara Desert experiences.",
     ourMission: "Our Mission",
@@ -46,7 +42,7 @@ export default function About({ currentLanguage }: AboutProps) {
     whyChooseUs: "Why Choose Sghayra Tours",
     experience: "Years of Experience",
     experienceDesc: "Expertise in desert tourism",
-    localGuides: "Local Expert Guides", 
+    localGuides: "Local Expert Guides",
     localGuidesDesc: "Native guides with deep desert knowledge",
     safety: "Safety First",
     safetyDesc: "All tours follow strict safety protocols",
@@ -54,13 +50,13 @@ export default function About({ currentLanguage }: AboutProps) {
     authenticDesc: "Real desert life with local communities",
     stats: {
       toursCompleted: "1,200+ Tours Completed",
-      happyCustomers: "3,500+ Happy Customers", 
+      happyCustomers: "3,500+ Happy Customers",
       countries: "45+ Countries Served",
       rating: "4.9/5 Average Rating"
     },
     ourStory: "Our Story",
     ourStoryDesc: "Founded by local desert guides with a passion for sharing the magic of the Sahara.",
-    commitment: "Our Commitment", 
+    commitment: "Our Commitment",
     commitmentDesc: "We are committed to sustainable tourism practices that benefit local communities."
   };
 
@@ -112,16 +108,10 @@ export default function About({ currentLanguage }: AboutProps) {
         {/* Who We Are */}
         <div className="mb-20">
           <h2 className="text-3xl font-bold text-foreground mb-6 text-center">
-            {useAdminContent && aboutContent?.whoWeAre
-              ? aboutContent.whoWeAre[currentLanguage as keyof typeof aboutContent.whoWeAre] || aboutContent.whoWeAre.en
-              : t.whoWeAre}
+            {getContent('whoWeAre', defaults.whoWeAre)}
           </h2>
           <p className="text-lg text-muted-foreground max-w-4xl mx-auto text-center leading-relaxed">
-            {useAdminContent && aboutContent?.whoWeAreDesc
-              ? aboutContent.whoWeAreDesc[currentLanguage as keyof typeof aboutContent.whoWeAreDesc] || aboutContent.whoWeAreDesc.en
-              : siteSettings?.company_info?.about
-              ? siteSettings.company_info.about[currentLanguage as keyof typeof siteSettings.company_info.about] || siteSettings.company_info.about.en
-              : t.whoWeAreDesc}
+            {getContent('whoWeAreDesc', defaults.whoWeAreDesc)}
           </p>
         </div>
 
@@ -129,11 +119,11 @@ export default function About({ currentLanguage }: AboutProps) {
         <div className="mb-20">
           <Card className="max-w-4xl mx-auto">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">{t.ourMission}</CardTitle>
+              <CardTitle className="text-2xl text-center">{getContent('ourMission', defaults.ourMission)}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-lg text-muted-foreground text-center leading-relaxed">
-                {t.ourMissionDesc}
+                {getContent('ourMissionDesc', defaults.ourMissionDesc)}
               </p>
             </CardContent>
           </Card>
@@ -142,7 +132,7 @@ export default function About({ currentLanguage }: AboutProps) {
         {/* Why Choose Us */}
         <div className="mb-20">
           <h2 className="text-3xl font-bold text-foreground mb-12 text-center">
-            {t.whyChooseUs}
+            {getContent('whyChooseUs', defaults.whyChooseUs)}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
@@ -219,19 +209,19 @@ export default function About({ currentLanguage }: AboutProps) {
         <div className="mt-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-foreground mb-4">
-              {currentLanguage === 'en' ? 'Visit Us' : 
-               currentLanguage === 'fr' ? 'Nous Rendre Visite' :
-               currentLanguage === 'de' ? 'Besuchen Sie Uns' :
-               'زورونا'}
+              {currentLanguage === 'en' ? 'Visit Us' :
+                currentLanguage === 'fr' ? 'Nous Rendre Visite' :
+                  currentLanguage === 'de' ? 'Besuchen Sie Uns' :
+                    'زورونا'}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {currentLanguage === 'en' ? 'Experience authentic desert hospitality at our location' : 
-               currentLanguage === 'fr' ? 'Découvrez l\'hospitalité authentique du désert à notre emplacement' :
-               currentLanguage === 'de' ? 'Erleben Sie authentische Wüstengastfreundschaft an unserem Standort' :
-               'اختبروا الضيافة الصحراوية الأصيلة في موقعنا'}
+              {currentLanguage === 'en' ? 'Experience authentic desert hospitality at our location' :
+                currentLanguage === 'fr' ? 'Découvrez l\'hospitalité authentique du désert à notre emplacement' :
+                  currentLanguage === 'de' ? 'Erleben Sie authentische Wüstengastfreundschaft an unserem Standort' :
+                    'اختبروا الضيافة الصحراوية الأصيلة في موقعنا'}
             </p>
           </div>
-          
+
           <div className="max-w-4xl mx-auto">
             <MapLocationDisplay
               language={currentLanguage as 'en' | 'fr' | 'de' | 'ar'}
