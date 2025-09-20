@@ -12,9 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema } from "@shared/schema";
+import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema, locationInfoSchema } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { Upload, Image, Video, FileText } from "lucide-react";
+import { Upload, Image, Video, FileText, MapPin } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 
 // Form schemas derived from shared schemas to ensure consistency
@@ -34,10 +34,15 @@ const bookingFormSchema = bookingInfoSchema.extend({
   isActive: z.boolean().default(true)
 });
 
+const locationFormSchema = locationInfoSchema.extend({
+  isActive: z.boolean().default(true)
+});
+
 type CompanyFormData = z.infer<typeof companyFormSchema>;
 type ContactFormData = z.infer<typeof contactFormSchema>;
 type SocialFormData = z.infer<typeof socialFormSchema>;
 type BookingFormData = z.infer<typeof bookingFormSchema>;
+type LocationFormData = z.infer<typeof locationFormSchema>;
 
 export default function AdminSettings() {
   const { toast } = useToast();
@@ -181,6 +186,20 @@ export default function AdminSettings() {
     }
   });
 
+  // Location Info Form
+  const locationForm = useForm<LocationFormData>({
+    resolver: zodResolver(locationFormSchema),
+    defaultValues: {
+      address: { en: "", fr: "", de: "", ar: "" },
+      latitude: 0,
+      longitude: 0,
+      googleMapsUrl: "",
+      displayOnFooter: true,
+      displayOnContact: true,
+      isActive: true
+    }
+  });
+
   // Update forms when data loads
   useEffect(() => {
     const settingsData = allSettings as Record<string, any> || {};
@@ -201,7 +220,11 @@ export default function AdminSettings() {
       const { type, ...bookingData } = settingsData.booking_info;
       bookingForm.reset({ ...bookingData, isActive: settingsData.booking_info.isActive ?? true });
     }
-  }, [allSettings, companyForm, contactForm, socialForm, bookingForm]);
+    if (settingsData.location_info) {
+      const { type, ...locationData } = settingsData.location_info;
+      locationForm.reset({ ...locationData, isActive: settingsData.location_info.isActive ?? true });
+    }
+  }, [allSettings, companyForm, contactForm, socialForm, bookingForm, locationForm]);
 
   // Mutations for updating settings
   const updateCompanyMutation = useMutation({
@@ -324,6 +347,28 @@ export default function AdminSettings() {
     }
   });
 
+  const updateLocationMutation = useMutation({
+    mutationFn: async (data: LocationFormData) => {
+      const { isActive, ...value } = data;
+      const valueWithType = { type: "location_info", ...value };
+      return apiRequest("PUT", "/api/admin/settings/location_info", { value: valueWithType, isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Success", description: "Location information updated successfully" });
+    },
+    onError: (error: any) => {
+      console.error("Location update error:", error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update location information",
+        variant: "destructive" 
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -359,9 +404,10 @@ export default function AdminSettings() {
 
       <div className="max-w-6xl mx-auto p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="company" data-testid="tab-company">Company Info</TabsTrigger>
             <TabsTrigger value="contact" data-testid="tab-contact">Contact Details</TabsTrigger>
+            <TabsTrigger value="location" data-testid="tab-location">Location</TabsTrigger>
             <TabsTrigger value="social" data-testid="tab-social">Social Media</TabsTrigger>
             <TabsTrigger value="booking" data-testid="tab-booking">Booking Settings</TabsTrigger>
             <TabsTrigger value="media" data-testid="tab-media">Media Management</TabsTrigger>
@@ -786,6 +832,228 @@ export default function AdminSettings() {
 
                     <Button type="submit" disabled={updateContactMutation.isPending} data-testid="button-save-contact">
                       {updateContactMutation.isPending ? "Saving..." : "Save Contact Information"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Location Tab */}
+          <TabsContent value="location">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Location Information
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Manage your company's physical location and map integration.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Form {...locationForm}>
+                  <form onSubmit={locationForm.handleSubmit((data) => updateLocationMutation.mutate(data))} className="space-y-6">
+                    <FormField
+                      control={locationForm.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Enable Location Display</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Show location information on website footer and contact pages
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-location-active"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Address Section */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Address</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={locationForm.control}
+                          name="address.en"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>English</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Complete address in English" rows={3} data-testid="input-address-en" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={locationForm.control}
+                          name="address.fr"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>French</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Adresse complète en français" rows={3} data-testid="input-address-fr" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={locationForm.control}
+                          name="address.de"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>German</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Vollständige Adresse auf Deutsch" rows={3} data-testid="input-address-de" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={locationForm.control}
+                          name="address.ar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Arabic</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="العنوان الكامل بالعربية" dir="rtl" rows={3} data-testid="input-address-ar" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Coordinates Section */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Map Coordinates</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={locationForm.control}
+                          name="latitude"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Latitude</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  step="any" 
+                                  placeholder="33.8869" 
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  data-testid="input-latitude" 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={locationForm.control}
+                          name="longitude"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Longitude</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  step="any" 
+                                  placeholder="9.5375" 
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  data-testid="input-longitude" 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Get coordinates from Google Maps by right-clicking on your location and selecting coordinates.
+                      </p>
+                    </div>
+
+                    {/* Optional Google Maps URL */}
+                    <FormField
+                      control={locationForm.control}
+                      name="googleMapsUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Google Maps URL (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="https://maps.google.com/..." data-testid="input-google-maps-url" />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-sm text-muted-foreground">
+                            Link to your business on Google Maps for additional information.
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Display Options */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Display Options</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={locationForm.control}
+                          name="displayOnFooter"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel>Show in Footer</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Display location in website footer
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                  data-testid="switch-display-footer"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={locationForm.control}
+                          name="displayOnContact"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel>Show on Contact Page</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Display location on contact page
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                  data-testid="switch-display-contact"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={updateLocationMutation.isPending} data-testid="button-save-location">
+                      {updateLocationMutation.isPending ? "Saving..." : "Save Location Information"}
                     </Button>
                   </form>
                 </Form>

@@ -245,11 +245,21 @@ export const bookingInfoSchema = z.object({
   isBookingEnabled: z.boolean().default(true),
 });
 
+export const locationInfoSchema = z.object({
+  address: multilingualTextSchema,
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  googleMapsUrl: z.string().url("Please enter a valid URL").optional(),
+  displayOnFooter: z.boolean().default(true),
+  displayOnContact: z.boolean().default(true),
+});
+
 export const siteSettingValueSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("company_info"), ...companyInfoSchema.shape }),
   z.object({ type: z.literal("contact_details"), ...contactInfoSchema.shape }),
   z.object({ type: z.literal("social_media"), ...socialMediaSchema.shape }),
   z.object({ type: z.literal("booking_info"), ...bookingInfoSchema.shape }),
+  z.object({ type: z.literal("location_info"), ...locationInfoSchema.shape }),
 ]);
 
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).pick({
