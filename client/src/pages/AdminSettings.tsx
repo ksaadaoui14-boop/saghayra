@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema, locationInfoSchema } from "@shared/schema";
+import { companyInfoSchema, contactInfoSchema, socialMediaSchema, bookingInfoSchema, locationInfoSchema, aboutPageContentSchema } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Upload, Image, Video, FileText, MapPin } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
@@ -38,11 +38,16 @@ const locationFormSchema = locationInfoSchema.extend({
   isActive: z.boolean().default(true)
 });
 
+const aboutPageFormSchema = aboutPageContentSchema.extend({
+  isActive: z.boolean().default(true)
+});
+
 type CompanyFormData = z.infer<typeof companyFormSchema>;
 type ContactFormData = z.infer<typeof contactFormSchema>;
 type SocialFormData = z.infer<typeof socialFormSchema>;
 type BookingFormData = z.infer<typeof bookingFormSchema>;
 type LocationFormData = z.infer<typeof locationFormSchema>;
+type AboutPageFormData = z.infer<typeof aboutPageFormSchema>;
 
 export default function AdminSettings() {
   const { toast } = useToast();
@@ -200,6 +205,37 @@ export default function AdminSettings() {
     }
   });
 
+  // About Page Form
+  const aboutPageForm = useForm<AboutPageFormData>({
+    resolver: zodResolver(aboutPageFormSchema),
+    defaultValues: {
+      title: { en: "", fr: "", de: "", ar: "" },
+      subtitle: { en: "", fr: "", de: "", ar: "" },
+      whoWeAre: { en: "", fr: "", de: "", ar: "" },
+      whoWeAreDesc: { en: "", fr: "", de: "", ar: "" },
+      ourMission: { en: "", fr: "", de: "", ar: "" },
+      ourMissionDesc: { en: "", fr: "", de: "", ar: "" },
+      whyChooseUs: { en: "", fr: "", de: "", ar: "" },
+      experience: { en: "", fr: "", de: "", ar: "" },
+      experienceDesc: { en: "", fr: "", de: "", ar: "" },
+      localGuides: { en: "", fr: "", de: "", ar: "" },
+      localGuidesDesc: { en: "", fr: "", de: "", ar: "" },
+      safety: { en: "", fr: "", de: "", ar: "" },
+      safetyDesc: { en: "", fr: "", de: "", ar: "" },
+      authentic: { en: "", fr: "", de: "", ar: "" },
+      authenticDesc: { en: "", fr: "", de: "", ar: "" },
+      toursCompleted: { en: "", fr: "", de: "", ar: "" },
+      happyCustomers: { en: "", fr: "", de: "", ar: "" },
+      countries: { en: "", fr: "", de: "", ar: "" },
+      rating: { en: "", fr: "", de: "", ar: "" },
+      ourStory: { en: "", fr: "", de: "", ar: "" },
+      ourStoryDesc: { en: "", fr: "", de: "", ar: "" },
+      commitment: { en: "", fr: "", de: "", ar: "" },
+      commitmentDesc: { en: "", fr: "", de: "", ar: "" },
+      isActive: true
+    }
+  });
+
   // Update forms when data loads
   useEffect(() => {
     const settingsData = allSettings as Record<string, any> || {};
@@ -224,7 +260,11 @@ export default function AdminSettings() {
       const { type, ...locationData } = settingsData.location_info;
       locationForm.reset({ ...locationData, isActive: settingsData.location_info.isActive ?? true });
     }
-  }, [allSettings, companyForm, contactForm, socialForm, bookingForm, locationForm]);
+    if (settingsData.about_page_content) {
+      const { type, ...aboutPageData } = settingsData.about_page_content;
+      aboutPageForm.reset({ ...aboutPageData, isActive: settingsData.about_page_content.isActive ?? true });
+    }
+  }, [allSettings, companyForm, contactForm, socialForm, bookingForm, locationForm, aboutPageForm]);
 
   // Mutations for updating settings
   const updateCompanyMutation = useMutation({
@@ -369,6 +409,28 @@ export default function AdminSettings() {
     }
   });
 
+  const updateAboutPageMutation = useMutation({
+    mutationFn: async (data: AboutPageFormData) => {
+      const { isActive, ...value } = data;
+      const valueWithType = { type: "about_page_content", ...value };
+      return apiRequest("PUT", "/api/admin/settings/about_page_content", { value: valueWithType, isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.removeQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Success", description: "About page content updated successfully" });
+    },
+    onError: (error: any) => {
+      console.error("About page update error:", error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update about page content",
+        variant: "destructive" 
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -404,10 +466,11 @@ export default function AdminSettings() {
 
       <div className="max-w-6xl mx-auto p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="company" data-testid="tab-company">Company Info</TabsTrigger>
             <TabsTrigger value="contact" data-testid="tab-contact">Contact Details</TabsTrigger>
             <TabsTrigger value="location" data-testid="tab-location">Location</TabsTrigger>
+            <TabsTrigger value="about" data-testid="tab-about">About Page</TabsTrigger>
             <TabsTrigger value="social" data-testid="tab-social">Social Media</TabsTrigger>
             <TabsTrigger value="booking" data-testid="tab-booking">Booking Settings</TabsTrigger>
             <TabsTrigger value="media" data-testid="tab-media">Media Management</TabsTrigger>
@@ -1054,6 +1117,310 @@ export default function AdminSettings() {
 
                     <Button type="submit" disabled={updateLocationMutation.isPending} data-testid="button-save-location">
                       {updateLocationMutation.isPending ? "Saving..." : "Save Location Information"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* About Page Tab */}
+          <TabsContent value="about">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Page Content</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Manage all content displayed on your About page across all languages.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Form {...aboutPageForm}>
+                  <form onSubmit={aboutPageForm.handleSubmit((data) => updateAboutPageMutation.mutate(data))} className="space-y-6">
+                    <FormField
+                      control={aboutPageForm.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Enable About Page Content</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              Make custom about page content visible on the website
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch 
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              data-testid="switch-about-active"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-8">
+                      {/* Page Header */}
+                      <div className="space-y-4">
+                        <h3 className="font-medium">Page Header</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Title */}
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-medium">Page Title</h4>
+                            <FormField control={aboutPageForm.control} name="title.en" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>English</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="About Sghayra Tours" data-testid="input-about-title-en" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="title.fr" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>French</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="À Propos de Sghayra Tours" data-testid="input-about-title-fr" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="title.de" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>German</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Über Sghayra Tours" data-testid="input-about-title-de" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="title.ar" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Arabic</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="حول سغايرة تورز" data-testid="input-about-title-ar" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          </div>
+
+                          {/* Subtitle */}
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-medium">Page Subtitle</h4>
+                            <FormField control={aboutPageForm.control} name="subtitle.en" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>English</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Your Gateway to the Sahara Desert" data-testid="input-about-subtitle-en" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="subtitle.fr" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>French</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Votre Porte d'Entrée vers le Désert du Sahara" data-testid="input-about-subtitle-fr" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="subtitle.de" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>German</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Ihr Tor zur Sahara-Wüste" data-testid="input-about-subtitle-de" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={aboutPageForm.control} name="subtitle.ar" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Arabic</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="بوابتك إلى الصحراء الكبرى" data-testid="input-about-subtitle-ar" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Main Content Sections */}
+                      <div className="space-y-6">
+                        <h3 className="font-medium">Main Content Sections</h3>
+                        
+                        {/* Who We Are */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-medium">Who We Are Section</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <FormField control={aboutPageForm.control} name="whoWeAre.en" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (English)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Who We Are" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAre.fr" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (French)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Qui Nous Sommes" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAre.de" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (German)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Wer Wir Sind" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAre.ar" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (Arabic)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="من نحن" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                            </div>
+                            <div className="space-y-3">
+                              <FormField control={aboutPageForm.control} name="whoWeAreDesc.en" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (English)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Describe your company..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAreDesc.fr" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (French)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Décrivez votre entreprise..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAreDesc.de" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (German)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Beschreiben Sie Ihr Unternehmen..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="whoWeAreDesc.ar" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (Arabic)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="اوصف شركتك..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Our Story */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-medium">Our Story Section</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <FormField control={aboutPageForm.control} name="ourStory.en" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (English)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Our Story" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStory.fr" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (French)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Notre Histoire" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStory.de" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (German)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="Unsere Geschichte" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStory.ar" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Title (Arabic)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="قصتنا" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                            </div>
+                            <div className="space-y-3">
+                              <FormField control={aboutPageForm.control} name="ourStoryDesc.en" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (English)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Tell your company story..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStoryDesc.fr" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (French)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Racontez l'histoire de votre entreprise..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStoryDesc.de" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (German)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="Erzählen Sie Ihre Unternehmensgeschichte..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                              <FormField control={aboutPageForm.control} name="ourStoryDesc.ar" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Description (Arabic)</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder="احك قصة شركتك..." rows={3} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={updateAboutPageMutation.isPending} data-testid="button-save-about">
+                      {updateAboutPageMutation.isPending ? "Saving..." : "Save About Page Content"}
                     </Button>
                   </form>
                 </Form>
