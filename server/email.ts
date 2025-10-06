@@ -126,7 +126,7 @@ const emailTemplates = {
               <h4 style="color: #047857; margin: 0 0 10px 0; font-size: 16px;">📞 Contact Information</h4>
               <p style="color: #065F46; margin: 0; font-size: 14px;">
                 Email: info@sghayratours.com<br>
-                WhatsApp: +216 XX XXX XXX<br>
+                WhatsApp:+216 40 676 420 <br>
                 We're here to help with any questions about your adventure!
               </p>
             </div>
@@ -198,7 +198,7 @@ const emailTemplates = {
               <h4 style="color: #047857; margin: 0 0 10px 0; font-size: 16px;">📞 Informations de Contact</h4>
               <p style="color: #065F46; margin: 0; font-size: 14px;">
                 Email: info@sghayratours.com<br>
-                WhatsApp: +216 XX XXX XXX<br>
+                WhatsApp: +216 40 676 420<br>
                 Nous sommes là pour répondre à toutes vos questions sur votre aventure!
               </p>
             </div>
@@ -270,7 +270,7 @@ const emailTemplates = {
               <h4 style="color: #047857; margin: 0 0 10px 0; font-size: 16px;">📞 Kontaktinformationen</h4>
               <p style="color: #065F46; margin: 0; font-size: 14px;">
                 E-Mail: info@sghayratours.com<br>
-                WhatsApp: +216 XX XXX XXX<br>
+                WhatsApp:+216 40 676 420<br>
                 Wir helfen Ihnen gerne bei Fragen zu Ihrem Abenteuer!
               </p>
             </div>
@@ -342,7 +342,7 @@ const emailTemplates = {
               <h4 style="color: #047857; margin: 0 0 10px 0; font-size: 16px;">📞 معلومات الاتصال</h4>
               <p style="color: #065F46; margin: 0; font-size: 14px;">
                 البريد الإلكتروني: info@sghayratours.com<br>
-                واتساب: +216 XX XXX XXX<br>
+                واتساب: +216 40 676 420<br>
                 نحن هنا للمساعدة في أي أسئلة حول مغامرتك!
               </p>
             </div>
@@ -398,7 +398,7 @@ const emailTemplates = {
                 <h4 style="color: #047857; margin: 0 0 10px 0; font-size: 16px;">📞 Contact Information</h4>
                 <p style="color: #065F46; margin: 0; font-size: 14px;">
                   Email: info@sghayratours.com<br>
-                  WhatsApp: +216 XX XXX XXX
+                  WhatsApp:+216 40 676 420
                 </p>
               </div>
             </div>

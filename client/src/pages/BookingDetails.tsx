@@ -762,7 +762,7 @@ ${specialRequests ? `طلبات خاصة: ${specialRequests}` : ''}
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {settings?.booking_info?.contactPhone || settings?.contact_details?.phone || "+216 XX XXX XXX"}
+                    {settings?.booking_info?.contactPhone || settings?.contact_details?.phone || "+216 40 676 420"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">

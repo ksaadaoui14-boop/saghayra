@@ -38,7 +38,7 @@ export default function Header({
             <div className="hidden md:flex items-center space-x-4 text-muted-foreground">
               <div className="flex items-center space-x-1">
                 <Phone className="w-3 h-3" />
-                <span>+216 XX XXX XXX</span>
+                <span>+216 40 676 420</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Mail className="w-3 h-3" />
