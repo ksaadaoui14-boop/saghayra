@@ -179,8 +179,8 @@ export const insertActivitySchema = createInsertSchema(activities).pick({
   prices: pricesSchema,
   images: z.array(z.string()).optional(),
   videos: z.array(z.string()).optional(),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
+  latitude: z.string().transform(val => val === '' ? undefined : val).optional(),
+  longitude: z.string().transform(val => val === '' ? undefined : val).optional(),
 });
 
 // Booking request schema for API (customer input only)
