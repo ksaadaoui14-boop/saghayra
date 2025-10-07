@@ -26,6 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Activity } from "@shared/schema";
+import { LocationMap } from "@/components/LocationMap";
 
 interface ActivityDetailProps {
   activityId: string;
@@ -160,6 +161,8 @@ export default function ActivityDetail({ activityId, currentLanguage, currentCur
       highlights: "Highlights",
       description: "Description",
       gallery: "Gallery",
+      location: "Activity Location",
+      viewOnMap: "View on Map",
       bookingForm: "Book This Experience",
       customerName: "Full Name",
       customerEmail: "Email Address",
@@ -185,6 +188,8 @@ export default function ActivityDetail({ activityId, currentLanguage, currentCur
       highlights: "Points Forts",
       description: "Description",
       gallery: "Galerie",
+      location: "Lieu de l'Activité",
+      viewOnMap: "Voir sur la Carte",
       bookingForm: "Réserver cette Expérience",
       customerName: "Nom Complet",
       customerEmail: "Adresse Email",
@@ -210,6 +215,8 @@ export default function ActivityDetail({ activityId, currentLanguage, currentCur
       highlights: "Highlights",
       description: "Beschreibung",
       gallery: "Galerie",
+      location: "Aktivitätsort",
+      viewOnMap: "Auf Karte Anzeigen",
       bookingForm: "Diese Erfahrung Buchen",
       customerName: "Vollständiger Name",
       customerEmail: "E-Mail-Adresse",
@@ -235,6 +242,8 @@ export default function ActivityDetail({ activityId, currentLanguage, currentCur
       highlights: "المميزات",
       description: "الوصف",
       gallery: "المعرض",
+      location: "موقع النشاط",
+      viewOnMap: "عرض على الخريطة",
       bookingForm: "احجز هذه التجربة",
       customerName: "الاسم الكامل",
       customerEmail: "عنوان البريد الإلكتروني",
@@ -410,6 +419,27 @@ export default function ActivityDetail({ activityId, currentLanguage, currentCur
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Location Map */}
+            {activity.latitude && activity.longitude && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    {t.location}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LocationMap
+                    latitude={parseFloat(activity.latitude)}
+                    longitude={parseFloat(activity.longitude)}
+                    zoom={14}
+                    height="400px"
+                    markerText={title}
+                  />
                 </CardContent>
               </Card>
             )}
