@@ -184,6 +184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/admin/activities - Create new activity (admin only)
   app.post("/api/admin/activities", requireAdminAuth, async (req, res) => {
+    console.log("Incoming activity payload:", req.body);
+
     try {
       const result = insertActivitySchema.safeParse(req.body);
       
