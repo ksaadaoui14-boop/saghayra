@@ -12,8 +12,17 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-// Setup Neon WebSocket
-neonConfig.webSocketConstructor = ws;
+// Setup Neon WebSocket with custom options for Replit environment
+class SecureWebSocket extends ws {
+  constructor(address: string | URL, protocols?: string | string[]) {
+    const options = {
+      rejectUnauthorized: false, // Allow self-signed certs in Replit dev environment
+    };
+    super(address, protocols, options);
+  }
+}
+
+neonConfig.webSocketConstructor = SecureWebSocket as any;
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL) {
