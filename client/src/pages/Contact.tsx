@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LocationDisplay } from "@/components/LocationDisplay";
+import { LocationMap } from "@/components/LocationMap";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 
 interface ContactProps {
@@ -413,6 +414,39 @@ export default function Contact({ currentLanguage }: ContactProps) {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Map Section */}
+        <div className="mt-16">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">
+                {currentLanguage === 'en' && 'Find Us in Douz'}
+                {currentLanguage === 'fr' && 'Trouvez-nous à Douz'}
+                {currentLanguage === 'de' && 'Finden Sie uns in Douz'}
+                {currentLanguage === 'ar' && 'اعثر علينا في دوز'}
+              </CardTitle>
+              <p className="text-muted-foreground">
+                {currentLanguage === 'en' && 'Visit us at our location in the gateway to the Sahara Desert'}
+                {currentLanguage === 'fr' && 'Visitez-nous à notre emplacement à la porte du désert du Sahara'}
+                {currentLanguage === 'de' && 'Besuchen Sie uns an unserem Standort am Tor zur Sahara-Wüste'}
+                {currentLanguage === 'ar' && 'قم بزيارتنا في موقعنا في بوابة الصحراء الكبرى'}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 flex items-center space-x-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>Douz, Kebili Governorate, Tunisia</span>
+              </div>
+              <LocationMap
+                latitude={33.4511}
+                longitude={9.0322}
+                zoom={13}
+                height="450px"
+                markerText="Sghayra Tours - Douz, Tunisia"
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
