@@ -124,7 +124,8 @@ export default function AdminNewActivity() {
     mutationFn: async (data: NewActivityFormData) => {
       const response = await authenticatedApiRequest("POST", "/api/admin/activities", data);
       if (!response.ok) {
-        throw new Error("Failed to create activity");
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || "Failed to create activity");
       }
       return response.json();
     },
@@ -139,7 +140,7 @@ export default function AdminNewActivity() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to create activity: ${error.message}`,
+        description: error.message,
         variant: "destructive",
       });
     },

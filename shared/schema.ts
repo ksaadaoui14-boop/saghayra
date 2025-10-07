@@ -150,10 +150,10 @@ const aboutPageMultilingualTextSchema = z.object({
 });
 
 const multilingualArraySchema = z.object({
-  en: z.array(z.string()).min(1),
-  fr: z.array(z.string()).min(1),
-  de: z.array(z.string()).min(1),
-  ar: z.array(z.string()).min(1),
+  en: z.array(z.string()),
+  fr: z.array(z.string()),
+  de: z.array(z.string()),
+  ar: z.array(z.string()),
 });
 
 const pricesSchema = z.object({
