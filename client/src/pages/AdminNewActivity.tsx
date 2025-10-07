@@ -22,6 +22,9 @@ const newActivitySchema = z.object({
   groupSize: z.string().min(1, "Group size is required"),
   imageUrl: z.string().optional(),
   images: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
   isActive: z.boolean().default(true),
   title: z.object({
     en: z.string().min(1, "English title is required"),
@@ -66,6 +69,7 @@ export default function AdminNewActivity() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploadingMultiple, setUploadingMultiple] = useState(false);
+  const [uploadingVideos, setUploadingVideos] = useState(false);
 
   // Upload helper function
   const handleImageUploadComplete = (result: { fileUrl: string; fileName: string; fileType: string }) => {
@@ -118,10 +122,56 @@ export default function AdminNewActivity() {
     }
   };
 
+  // Multiple videos upload handler
+  const handleMultipleVideosUpload = async (files: FileList) => {
+    setUploadingVideos(true);
+    const formData = new FormData();
+    
+    Array.from(files).forEach(file => {
+      formData.append('files', file);
+    });
+
+    try {
+      const response = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload videos');
+      }
+
+      const data = await response.json();
+      const currentVideos = form.getValues('videos') || [];
+      const newVideoUrls = data.files.map((file: any) => file.fileUrl);
+      form.setValue('videos', [...currentVideos, ...newVideoUrls]);
+
+      toast({
+        title: "Success",
+        description: `${data.files.length} video(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload videos",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingVideos(false);
+    }
+  };
+
   // Remove image from the list
   const removeImage = (indexToRemove: number) => {
     const currentImages = form.getValues('images') || [];
     form.setValue('images', currentImages.filter((_, index) => index !== indexToRemove));
+  };
+
+  // Remove video from the list
+  const removeVideo = (indexToRemove: number) => {
+    const currentVideos = form.getValues('videos') || [];
+    form.setValue('videos', currentVideos.filter((_, index) => index !== indexToRemove));
   };
 
   const form = useForm<NewActivityFormData>({
@@ -132,6 +182,9 @@ export default function AdminNewActivity() {
       groupSize: "",
       imageUrl: "",
       images: [],
+      videos: [],
+      latitude: "",
+      longitude: "",
       isActive: true,
       title: { en: "", fr: "", de: "", ar: "" },
       description: { en: "", fr: "", de: "", ar: "" },
@@ -357,6 +410,88 @@ export default function AdminNewActivity() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Multiple Videos Section */}
+                <div className="space-y-4">
+                  <div>
+                    <FormLabel>Videos (Optional)</FormLabel>
+                    <p className="text-sm text-muted-foreground mb-2">Upload videos to showcase your activity</p>
+                    <Input
+                      type="file"
+                      multiple
+                      accept="video/mp4,video/webm,video/ogg"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleMultipleVideosUpload(e.target.files);
+                          e.target.value = '';
+                        }
+                      }}
+                      disabled={uploadingVideos}
+                      className="cursor-pointer"
+                      data-testid="input-videos"
+                    />
+                  </div>
+
+                  {/* Video Preview Grid */}
+                  {form.watch('videos') && form.watch('videos')!.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {form.watch('videos')!.map((videoUrl, index) => (
+                        <div key={index} className="relative group">
+                          <video
+                            src={videoUrl}
+                            className="w-full h-48 object-cover rounded-lg border"
+                            controls
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeVideo(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove video"
+                            data-testid={`button-remove-video-${index}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Geographic Coordinates Section */}
+                <div className="space-y-4">
+                  <FormLabel>Geographic Location (Optional)</FormLabel>
+                  <p className="text-sm text-muted-foreground">Add coordinates to display activity on map</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Latitude</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 33.4511" type="number" step="any" data-testid="input-latitude" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Longitude</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 9.2322" type="number" step="any" data-testid="input-longitude" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <FormField
