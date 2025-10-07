@@ -8,8 +8,9 @@ import { sql, eq, and, gte, lte, ne } from "drizzle-orm";
 import { requireAdminAuth, adminLogin, createDefaultAdminIfNeeded } from "./auth";
 import { sendBookingConfirmationEmail, sendBookingStatusUpdateEmail } from "./email";
 import { z } from "zod";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { ObjectPermission } from "./objectAcl";
+import multer from "multer";
+import path from "path";
+import { randomUUID } from "crypto";
 
 // Simple hash function for generating consistent lock IDs
 function hashCode(str: string): number {
@@ -26,6 +27,38 @@ function hashCode(str: string): number {
 const adminLoginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+});
+
+// Configure multer for file uploads
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const isVideo = file.mimetype.startsWith('video/');
+    const uploadPath = isVideo ? 'public/uploads/videos' : 'public/uploads/images';
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${randomUUID()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Whitelist of allowed MIME types for better security
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska'];
+    const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images (JPEG, PNG, WebP, GIF) and videos (MP4, MOV, WebM, AVI, MKV) are allowed.'));
+    }
+  }
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -846,92 +879,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================
-  // OBJECT STORAGE ROUTES
+  // FILE UPLOAD ROUTES (LOCAL STORAGE)
   // ========================
 
-  // POST /api/admin/objects/upload - Get upload URL for admin file uploads (protected)
-  app.post("/api/admin/objects/upload", requireAdminAuth, async (req, res) => {
+  // POST /api/admin/upload - Upload file to local storage (admin only, protected)
+  app.post("/api/admin/upload", requireAdminAuth, upload.single('file'), async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
-    }
-  });
-
-  // PUT /api/admin/objects - Set ACL policy for uploaded file (protected)
-  app.put("/api/admin/objects", requireAdminAuth, async (req, res) => {
-    try {
-      const { fileURL, visibility = "public", fileType } = req.body;
-      
-      if (!fileURL) {
-        return res.status(400).json({ error: "fileURL is required" });
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Get admin user ID from auth (added by requireAdminAuth middleware)
-      const adminId = (req as any).user?.id || "admin";
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        fileURL,
-        {
-          owner: adminId,
-          visibility: visibility as "public" | "private",
-        }
-      );
+      const isVideo = req.file.mimetype.startsWith('video/');
+      const fileType = isVideo ? 'videos' : 'images';
+      const fileUrl = `/uploads/${fileType}/${req.file.filename}`;
 
       res.json({
-        objectPath: objectPath,
-        fileType: fileType || "file"
+        success: true,
+        fileUrl,
+        fileName: req.file.filename,
+        fileType,
+        mimeType: req.file.mimetype,
+        size: req.file.size
       });
     } catch (error) {
-      console.error("Error setting file ACL policy:", error);
-      res.status(500).json({ error: "Failed to process uploaded file" });
-    }
-  });
-
-  // GET /objects/:objectPath(*) - Serve uploaded objects with ACL checking
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      
-      // Check if user has access (public files are always accessible for read)
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        objectFile,
-        userId: (req as any).user?.id, // May be undefined for non-authenticated requests
-        requestedPermission: ObjectPermission.READ,
-      });
-      
-      if (!canAccess) {
-        return res.sendStatus(401);
-      }
-      
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
-    }
-  });
-
-  // GET /public-objects/:filePath(*) - Serve public assets (no auth required)
-  app.get("/public-objects/:filePath(*)", async (req, res) => {
-    const filePath = req.params.filePath;
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
-        return res.status(404).json({ error: "File not found" });
-      }
-      objectStorageService.downloadObject(file, res);
-    } catch (error) {
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 

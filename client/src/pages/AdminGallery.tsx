@@ -15,7 +15,6 @@ import {
   ExternalLink
 } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,71 +66,15 @@ export default function AdminGallery() {
     description: { en: "", fr: "", de: "", ar: "" },
   });
 
-  // Upload helper functions
-  const handleGetUploadParameters = async () => {
-    const response = await fetch('/api/admin/objects/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-    
-    const data = await response.json();
-    return {
-      method: 'PUT' as const,
-      url: data.uploadURL,
-    };
-  };
-
-  const handleFileUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    try {
-      if (result.successful && result.successful.length > 0) {
-        const uploadedFile = result.successful[0];
-        const fileURL = uploadedFile.uploadURL;
-        
-        // Set ACL policy for the uploaded file
-        const response = await fetch('/api/admin/objects', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            fileURL: fileURL,
-            visibility: 'public',
-            fileType: uploadedFile.type || 'image'
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to process uploaded file');
-        }
-
-        const data = await response.json();
-        const objectPath = data.objectPath;
-        
-        // Update the URL field and determine type
-        const fileType = uploadedFile.type?.startsWith('video/') ? 'video' : 'image';
-        setNewItemData(prev => ({
-          ...prev,
-          url: objectPath,
-          type: fileType
-        }));
-        
-        toast({
-          title: "File Uploaded",
-          description: "Gallery file uploaded successfully",
-        });
-      }
-    } catch (error) {
-      console.error('Error processing upload:', error);
-      toast({
-        title: "Upload Error",
-        description: "Failed to process uploaded file",
-        variant: "destructive",
-      });
-    }
+  // Upload helper function
+  const handleFileUploadComplete = (result: { fileUrl: string; fileName: string; fileType: string }) => {
+    // Update the URL field and determine type
+    const fileType = result.fileType === 'videos' ? 'video' : 'image';
+    setNewItemData(prev => ({
+      ...prev,
+      url: result.fileUrl,
+      type: fileType
+    }));
   };
 
   // API helper with auth - using httpOnly cookies
@@ -312,7 +255,6 @@ export default function AdminGallery() {
                   isLoading={createGalleryItemMutation.isPending}
                   newItemData={newItemData}
                   setNewItemData={setNewItemData}
-                  handleGetUploadParameters={handleGetUploadParameters}
                   handleFileUploadComplete={handleFileUploadComplete}
                 />
               </div>
@@ -489,15 +431,13 @@ function UploadForm({
   isLoading, 
   newItemData, 
   setNewItemData, 
-  handleGetUploadParameters, 
   handleFileUploadComplete 
 }: { 
   onSubmit: (data: any) => void; 
   isLoading: boolean;
   newItemData: any;
   setNewItemData: (data: any) => void;
-  handleGetUploadParameters: () => Promise<any>;
-  handleFileUploadComplete: (result: any) => Promise<void>;
+  handleFileUploadComplete: (result: { fileUrl: string; fileName: string; fileType: string }) => void;
 }) {
   const [formData, setFormData] = useState({
     type: newItemData.type || 'image',
@@ -569,10 +509,9 @@ function UploadForm({
           maxNumberOfFiles={1}
           maxFileSize={formData.type === 'video' ? 104857600 : 10485760} // 100MB for videos, 10MB for images
           allowedFileTypes={formData.type === 'video' 
-            ? ['.mp4', '.webm', '.mov'] 
-            : ['.jpg', '.jpeg', '.png', '.webp']
+            ? ['video/mp4', 'video/webm', 'video/quicktime'] 
+            : ['image/jpeg', 'image/png', 'image/webp']
           }
-          onGetUploadParameters={handleGetUploadParameters}
           onComplete={handleFileUploadComplete}
           buttonClassName="w-full h-8"
           data-testid="button-upload-gallery-file"

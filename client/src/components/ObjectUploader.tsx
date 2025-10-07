@@ -1,108 +1,159 @@
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
-import AwsS3 from "@uppy/aws-s3";
-import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
   allowedFileTypes?: string[];
-  onGetUploadParameters: () => Promise<{
-    method: "PUT";
-    url: string;
-  }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  onComplete?: (result: { fileUrl: string; fileName: string; fileType: string }) => void;
   buttonClassName?: string;
   children: ReactNode;
+  "data-testid"?: string;
 }
 
 /**
- * A file upload component that renders as a button and provides a modal interface for
- * file management.
+ * A file upload component that renders as a button and handles file uploads to local storage.
  * 
  * Features:
- * - Renders as a customizable button that opens a file upload modal
- * - Provides a modal interface for:
- *   - File selection
- *   - File preview
- *   - Upload progress tracking
- *   - Upload status display
- * 
- * The component uses Uppy under the hood to handle all file upload functionality.
- * All file management features are automatically handled by the Uppy dashboard modal.
+ * - Simple file selection via button click
+ * - Upload progress tracking
+ * - File type and size validation
+ * - Uploads to local server storage
  * 
  * @param props - Component props
- * @param props.maxNumberOfFiles - Maximum number of files allowed to be uploaded
- *   (default: 1)
- * @param props.maxFileSize - Maximum file size in bytes (default: 10MB)
- * @param props.onGetUploadParameters - Function to get upload parameters (method and URL).
- *   Typically used to fetch a presigned URL from the backend server for direct-to-S3
- *   uploads.
- * @param props.onComplete - Callback function called when upload is complete. Typically
- *   used to make post-upload API calls to update server state and set object ACL
- *   policies.
+ * @param props.maxNumberOfFiles - Maximum number of files allowed to be uploaded (default: 1)
+ * @param props.maxFileSize - Maximum file size in bytes (default: 100MB)
+ * @param props.allowedFileTypes - Array of allowed MIME types
+ * @param props.onComplete - Callback function called when upload is complete
  * @param props.buttonClassName - Optional CSS class name for the button
  * @param props.children - Content to be rendered inside the button
  */
 export function ObjectUploader({
   maxNumberOfFiles = 1,
-  maxFileSize = 10485760, // 10MB default
+  maxFileSize = 100 * 1024 * 1024, // 100MB default
   allowedFileTypes,
-  onGetUploadParameters,
   onComplete,
   buttonClassName,
   children,
-  'data-testid': dataTestId,
+  "data-testid": dataTestId,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-        allowedFileTypes: allowedFileTypes || undefined,
-      },
-      autoProceed: false,
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
-      })
-      .on("complete", (result) => {
-        onComplete?.(result);
-      })
-  );
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  // Cleanup Uppy instance on unmount
-  useEffect(() => {
-    return () => {
-      if (uppy && typeof uppy.destroy === 'function') {
-        uppy.destroy();
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length > maxNumberOfFiles) {
+      toast({
+        title: "Too many files",
+        description: `You can only upload ${maxNumberOfFiles} file(s) at a time`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const file = files[0];
+
+    // Validate file size
+    if (file.size > maxFileSize) {
+      toast({
+        title: "File too large",
+        description: `File size must be less than ${Math.round(maxFileSize / 1024 / 1024)}MB`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (allowedFileTypes && allowedFileTypes.length > 0) {
+      const fileType = file.type;
+      const isAllowed = allowedFileTypes.some(type => {
+        if (type.endsWith('/*')) {
+          const prefix = type.slice(0, -2);
+          return fileType.startsWith(prefix);
+        }
+        return fileType === type;
+      });
+
+      if (!isAllowed) {
+        toast({
+          title: "Invalid file type",
+          description: `Only ${allowedFileTypes.join(', ')} files are allowed`,
+          variant: "destructive",
+        });
+        return;
       }
-    };
-  }, [uppy]);
+    }
+
+    // Upload file
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: "Upload successful",
+        description: `File ${file.name} uploaded successfully`,
+      });
+
+      if (onComplete) {
+        onComplete({
+          fileUrl: data.fileUrl,
+          fileName: data.fileName,
+          fileType: data.fileType,
+        });
+      }
+
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+        accept={allowedFileTypes?.join(',')}
+        multiple={maxNumberOfFiles > 1}
+      />
       <Button 
-        onClick={() => setShowModal(true)} 
+        onClick={() => fileInputRef.current?.click()} 
         className={buttonClassName}
         data-testid={dataTestId}
+        disabled={uploading}
       >
-        {children}
+        {uploading ? "Uploading..." : children}
       </Button>
-
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
-      />
     </div>
   );
 }

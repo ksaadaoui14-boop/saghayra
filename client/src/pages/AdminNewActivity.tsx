@@ -6,7 +6,6 @@ import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Upload } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -66,66 +65,15 @@ export default function AdminNewActivity() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Upload helper functions
-  const handleGetUploadParameters = async () => {
-    const response = await fetch('/api/admin/objects/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+  // Upload helper function
+  const handleImageUploadComplete = (result: { fileUrl: string; fileName: string; fileType: string }) => {
+    // Update the image URL field
+    form.setValue('imageUrl', result.fileUrl);
+    
+    toast({
+      title: "Image Uploaded",
+      description: "Activity image uploaded successfully",
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-    
-    const data = await response.json();
-    return {
-      method: 'PUT' as const,
-      url: data.uploadURL,
-    };
-  };
-
-  const handleImageUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    try {
-      if (result.successful && result.successful.length > 0) {
-        const uploadedFile = result.successful[0];
-        const fileURL = uploadedFile.uploadURL;
-        
-        // Set ACL policy for the uploaded file
-        const response = await fetch('/api/admin/objects', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            fileURL: fileURL,
-            visibility: 'public',
-            fileType: uploadedFile.type || 'image'
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to process uploaded file');
-        }
-
-        const data = await response.json();
-        const objectPath = data.objectPath;
-        
-        // Update the image URL field
-        form.setValue('imageUrl', objectPath);
-        
-        toast({
-          title: "Image Uploaded",
-          description: "Activity image uploaded successfully",
-        });
-      }
-    } catch (error) {
-      console.error('Error processing upload:', error);
-      toast({
-        title: "Upload Error",
-        description: "Failed to process uploaded image",
-        variant: "destructive",
-      });
-    }
   };
 
   const form = useForm<NewActivityFormData>({
@@ -295,8 +243,7 @@ export default function AdminNewActivity() {
                           <ObjectUploader
                             maxNumberOfFiles={1}
                             maxFileSize={10485760} // 10MB
-                            allowedFileTypes={['.jpg', '.jpeg', '.png', '.webp']}
-                            onGetUploadParameters={handleGetUploadParameters}
+                            allowedFileTypes={['image/jpeg', 'image/png', 'image/webp']}
                             onComplete={handleImageUploadComplete}
                             buttonClassName="w-full"
                             data-testid="button-upload-activity-image"
