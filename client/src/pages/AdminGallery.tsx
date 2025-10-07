@@ -58,6 +58,8 @@ export default function AdminGallery() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
+  const [uploadingMultiple, setUploadingMultiple] = useState(false);
   const [newItemData, setNewItemData] = useState({
     url: "",
     type: "image",
