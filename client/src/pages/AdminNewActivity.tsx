@@ -21,6 +21,7 @@ const newActivitySchema = z.object({
   duration: z.string().min(1, "Duration is required"),
   groupSize: z.string().min(1, "Group size is required"),
   imageUrl: z.string().optional(),
+  images: z.array(z.string()).optional(),
   isActive: z.boolean().default(true),
   title: z.object({
     en: z.string().min(1, "English title is required"),
@@ -64,6 +65,7 @@ export default function AdminNewActivity() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploadingMultiple, setUploadingMultiple] = useState(false);
 
   // Upload helper function
   const handleImageUploadComplete = (result: { fileUrl: string; fileName: string; fileType: string }) => {
@@ -76,6 +78,52 @@ export default function AdminNewActivity() {
     });
   };
 
+  // Multiple images upload handler
+  const handleMultipleImagesUpload = async (files: FileList) => {
+    setUploadingMultiple(true);
+    const formData = new FormData();
+    
+    Array.from(files).forEach(file => {
+      formData.append('files', file);
+    });
+
+    try {
+      const response = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload images');
+      }
+
+      const data = await response.json();
+      const currentImages = form.getValues('images') || [];
+      const newImageUrls = data.files.map((file: any) => file.fileUrl);
+      form.setValue('images', [...currentImages, ...newImageUrls]);
+
+      toast({
+        title: "Success",
+        description: `${data.files.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingMultiple(false);
+    }
+  };
+
+  // Remove image from the list
+  const removeImage = (indexToRemove: number) => {
+    const currentImages = form.getValues('images') || [];
+    form.setValue('images', currentImages.filter((_, index) => index !== indexToRemove));
+  };
+
   const form = useForm<NewActivityFormData>({
     resolver: zodResolver(newActivitySchema),
     defaultValues: {
@@ -83,6 +131,7 @@ export default function AdminNewActivity() {
       duration: "",
       groupSize: "",
       imageUrl: "",
+      images: [],
       isActive: true,
       title: { en: "", fr: "", de: "", ar: "" },
       description: { en: "", fr: "", de: "", ar: "" },
@@ -236,7 +285,7 @@ export default function AdminNewActivity() {
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Activity Image</FormLabel>
+                        <FormLabel>Primary Activity Image</FormLabel>
                         <div className="space-y-2">
                           <FormControl>
                             <Input {...field} placeholder="Image URL or upload below" data-testid="input-image-url" />
@@ -250,7 +299,7 @@ export default function AdminNewActivity() {
                             data-testid="button-upload-activity-image"
                           >
                             <Upload className="h-4 w-4 mr-2" />
-                            Upload Activity Image
+                            Upload Primary Image
                           </ObjectUploader>
                           {field.value && (
                             <div className="text-sm text-muted-foreground">
@@ -262,6 +311,52 @@ export default function AdminNewActivity() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Multiple Images Section */}
+                <div className="space-y-4">
+                  <div>
+                    <FormLabel>Additional Images (Optional)</FormLabel>
+                    <p className="text-sm text-muted-foreground mb-2">Upload multiple images to showcase your activity</p>
+                    <Input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleMultipleImagesUpload(e.target.files);
+                          e.target.value = '';
+                        }
+                      }}
+                      disabled={uploadingMultiple}
+                      className="cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Image Preview Grid */}
+                  {form.watch('images') && form.watch('images')!.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      {form.watch('images')!.map((imageUrl, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={imageUrl}
+                            alt={`Activity image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove image"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <FormField

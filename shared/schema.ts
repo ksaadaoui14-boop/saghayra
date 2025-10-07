@@ -33,6 +33,7 @@ export const activities = pgTable("activities", {
   capacity: integer("capacity").notNull().default(8), // Maximum number of people per booking date
   prices: jsonb("prices").notNull(), // {TND: 180, USD: 60, EUR: 55}
   imageUrl: text("image_url"),
+  images: jsonb("images").default([]), // Array of image URLs for multiple images
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -173,6 +174,7 @@ export const insertActivitySchema = createInsertSchema(activities).pick({
   description: multilingualTextSchema,
   highlights: multilingualArraySchema,
   prices: pricesSchema,
+  images: z.array(z.string()).optional(),
 });
 
 // Booking request schema for API (customer input only)

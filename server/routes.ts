@@ -909,6 +909,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/admin/upload-multiple - Upload multiple files to local storage (admin only, protected)
+  app.post("/api/admin/upload-multiple", requireAdminAuth, upload.array('files', 10), async (req, res) => {
+    try {
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+
+      const uploadedFiles = req.files.map(file => {
+        const isVideo = file.mimetype.startsWith('video/');
+        const fileType = isVideo ? 'videos' : 'images';
+        const fileUrl = `/uploads/${fileType}/${file.filename}`;
+
+        return {
+          fileUrl,
+          fileName: file.filename,
+          fileType,
+          mimeType: file.mimetype,
+          size: file.size
+        };
+      });
+
+      res.json({
+        success: true,
+        files: uploadedFiles
+      });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ error: "Failed to upload files" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
