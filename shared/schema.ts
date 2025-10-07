@@ -34,6 +34,9 @@ export const activities = pgTable("activities", {
   prices: jsonb("prices").notNull(), // {TND: 180, USD: 60, EUR: 55}
   imageUrl: text("image_url"),
   images: jsonb("images").default([]), // Array of image URLs for multiple images
+  videos: jsonb("videos").default([]), // Array of video URLs for multiple videos
+  latitude: decimal("latitude", { precision: 10, scale: 7 }), // Geographic coordinate for map display
+  longitude: decimal("longitude", { precision: 10, scale: 7 }), // Geographic coordinate for map display
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -175,6 +178,9 @@ export const insertActivitySchema = createInsertSchema(activities).pick({
   highlights: multilingualArraySchema,
   prices: pricesSchema,
   images: z.array(z.string()).optional(),
+  videos: z.array(z.string()).optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
 });
 
 // Booking request schema for API (customer input only)
