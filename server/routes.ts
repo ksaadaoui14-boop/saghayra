@@ -187,7 +187,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Incoming activity payload:", req.body);
 
     try {
-      const result = insertActivitySchema.safeParse(req.body);
+      // Preprocess: Convert empty strings to undefined for latitude/longitude
+      const processedBody = {
+        ...req.body,
+        latitude: req.body.latitude === '' ? undefined : req.body.latitude,
+        longitude: req.body.longitude === '' ? undefined : req.body.longitude,
+      };
+
+      const result = insertActivitySchema.safeParse(processedBody);
       
       if (!result.success) {
         const validationError = fromZodError(result.error);
@@ -210,8 +217,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
+      // Preprocess: Convert empty strings to undefined for latitude/longitude
+      const processedBody = {
+        ...req.body,
+        latitude: req.body.latitude === '' ? undefined : req.body.latitude,
+        longitude: req.body.longitude === '' ? undefined : req.body.longitude,
+      };
+      
       // Validate the update data (partial update allowed)
-      const updateData = insertActivitySchema.partial().safeParse(req.body);
+      const updateData = insertActivitySchema.partial().safeParse(processedBody);
       
       if (!updateData.success) {
         const validationError = fromZodError(updateData.error);
