@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Upload } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,11 +65,21 @@ const categories = [
 ];
 
 export default function AdminNewActivity() {
+  const params = useParams();
+  const activityId = params.id; // Will be undefined for new activities
+  const isEditing = !!activityId;
+  
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploadingMultiple, setUploadingMultiple] = useState(false);
   const [uploadingVideos, setUploadingVideos] = useState(false);
+
+  // Fetch existing activity data if editing
+  const { data: existingActivity } = useQuery<any>({
+    queryKey: ["/api/admin/activities", activityId],
+    enabled: isEditing,
+  });
 
   // Upload helper function
   const handleImageUploadComplete = (result: { fileUrl: string; fileName: string; fileType: string }) => {
@@ -193,6 +203,27 @@ export default function AdminNewActivity() {
     },
   });
 
+  // Populate form with existing data when editing
+  useEffect(() => {
+    if (existingActivity && isEditing) {
+      form.reset({
+        category: existingActivity.category || "",
+        duration: existingActivity.duration || "",
+        groupSize: existingActivity.groupSize || "",
+        imageUrl: existingActivity.imageUrl || "",
+        images: existingActivity.images || [],
+        videos: existingActivity.videos || [],
+        latitude: existingActivity.latitude?.toString() || "",
+        longitude: existingActivity.longitude?.toString() || "",
+        isActive: existingActivity.isActive ?? true,
+        title: existingActivity.title,
+        description: existingActivity.description,
+        highlights: existingActivity.highlights,
+        prices: existingActivity.prices,
+      });
+    }
+  }, [existingActivity, isEditing, form]);
+
   // API helper with auth
   const authenticatedApiRequest = async (method: string, endpoint: string, body?: any) => {
     const options: RequestInit = {
@@ -248,8 +279,38 @@ export default function AdminNewActivity() {
     },
   });
 
+  const updateActivityMutation = useMutation({
+    mutationFn: async (data: NewActivityFormData) => {
+      const response = await authenticatedApiRequest("PUT", `/api/admin/activities/${activityId}`, data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || "Failed to update activity");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Activity updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/activities"] });
+      setLocation("/admin/activities");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: NewActivityFormData) => {
-    createActivityMutation.mutate(data);
+    if (isEditing) {
+      updateActivityMutation.mutate(data);
+    } else {
+      createActivityMutation.mutate(data);
+    }
   };
 
   return (
@@ -266,7 +327,7 @@ export default function AdminNewActivity() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Create New Activity</h1>
+            <h1 className="text-3xl font-bold">{isEditing ? "Edit Activity" : "Create New Activity"}</h1>
             <p className="text-muted-foreground">Add a new tourism activity to your offerings</p>
           </div>
         </div>
@@ -735,11 +796,14 @@ export default function AdminNewActivity() {
               </Button>
               <Button 
                 type="submit" 
-                disabled={createActivityMutation.isPending}
+                disabled={createActivityMutation.isPending || updateActivityMutation.isPending}
                 data-testid="button-save"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {createActivityMutation.isPending ? "Creating..." : "Create Activity"}
+                {isEditing 
+                  ? (updateActivityMutation.isPending ? "Updating..." : "Update Activity")
+                  : (createActivityMutation.isPending ? "Creating..." : "Create Activity")
+                }
               </Button>
             </div>
           </form>

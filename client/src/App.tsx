@@ -36,6 +36,7 @@ function Router({ currentLanguage, currentCurrency, setCurrentLanguage, setCurre
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/activities/new" component={AdminNewActivity} />
+      <Route path="/admin/activities/:id/edit" component={AdminNewActivity} />
       <Route path="/admin/activities" component={AdminActivities} />
       <Route path="/admin/bookings" component={AdminBookings} />
       <Route path="/admin/translations" component={AdminTranslations} />
